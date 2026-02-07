@@ -48,7 +48,7 @@ export default async function ReportPage({
 
   // 2. Fetch report content (if likely completed or checking)
   try {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:4001";
+    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
     const res = await fetch(`${backendUrl}/report/${id}`, {
       cache: 'no-store'
     });

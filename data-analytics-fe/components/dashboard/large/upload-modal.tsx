@@ -85,7 +85,7 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
       formData.append("file", file);
       formData.append("user_id", userId);
 
-      const response = await fetch("http://localhost:4001/analyze", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001"}/analyze`, {
         method: "POST",
         body: formData,
       });

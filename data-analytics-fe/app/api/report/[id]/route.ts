@@ -19,7 +19,10 @@ export async function GET(
   try {
     // Assuming python backend is at localhost:8000
     // Adjust URL if needed or use env var
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:4001";
+    const backendUrl =
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:4001";
     const res = await fetch(`${backendUrl}/report/${id}`);
 
     if (!res.ok) {
