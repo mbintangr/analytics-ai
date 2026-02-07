@@ -370,6 +370,7 @@ INPUT:
 AVAILABLE TOOLS:
 - `get_data_state_list()`: Check available data states.
 - `copy_data_state_tool(source_key, target_key)`: CRITICAL. Copies data to a new key.
+- `get_top_n_rows_tool(key, n, visualize=False, x_column='Name', ascending=False)`: Get specific examples and optionally plot them.
 - `group_and_aggregate_tool(group_by_columns, agg_columns, key)`: Groups and sums/means/counts.
 - `create_pivot_table_tool(index, columns, values, key)`: Creates pivot tables.
 - `create_column_from_expression_tool(new_column, expression, key)`: Creates calculated columns.
@@ -402,6 +403,7 @@ Output ONLY this list.
         get_data_state_list,
         get_understanding_report,
         copy_data_state_tool,
+        get_top_n_rows_tool,
         group_and_aggregate_tool,
         create_pivot_table_tool,
         create_column_from_expression_tool,
