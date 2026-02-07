@@ -61,10 +61,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy prisma directory for migrations
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
 
-# Install prisma CLI to run migrations
+# Install prisma CLI and dotenv to run migrations
 USER root
-RUN npm install -g prisma
+RUN npm install -g prisma dotenv
+ENV NODE_PATH=/usr/local/lib/node_modules
 USER nextjs
 
 EXPOSE 3000

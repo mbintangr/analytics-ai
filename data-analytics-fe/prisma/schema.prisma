@@ -93,18 +93,18 @@ model AnalysisSession {
   durationSeconds Float?
   totalTokens     Int?
 
-  artifacts Artifact[]
+  // artifacts Artifact[]
 }
 
-model Artifact {
-  id        String          @id @default(cuid())
-  sessionId String
-  session   AnalysisSession @relation(fields: [sessionId], references: [id])
+// model Artifact {
+//   id        String          @id @default(cuid())
+//   sessionId String
+//   session   AnalysisSession @relation(fields: [sessionId], references: [id])
 
-  type        ArtifactType // PLOT, TABLE, JSON
-  path        String // MinIO path: "outputs/session_abc/plot_bar.png"
-  description String?
-}
+//   type        ArtifactType // PLOT, TABLE, JSON
+//   path        String // MinIO path: "outputs/session_abc/plot_bar.png"
+//   description String?
+// }
 
 enum ArtifactType {
   PLOT
