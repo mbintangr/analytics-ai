@@ -1,0 +1,74 @@
+services:
+  adk_backend:
+    build: .
+    ports:
+      - "4001:8000"
+    volumes:
+      - ./datasets:/app/datasets
+      - ./outputs:/app/outputs
+    env_file:
+      - ./da_agent/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/data-analytics
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - minio
+      - redis
+
+  celery_worker:
+    build: .
+    command: uv run celery -A celery_app worker --loglevel=info
+    volumes:
+      - ./datasets:/app/datasets
+      - ./outputs:/app/outputs
+    env_file:
+      - ./da_agent/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/data-analytics
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - adk_backend
+      - redis
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "4002:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-data-analytics}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    ports:
+      - "4003:9000"
+      - "4004:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "4005:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:
+
+networks:
+  default:
+    name: data-analytics-network

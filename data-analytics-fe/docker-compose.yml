@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  data-analytics-fe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data-analytics-fe
+    ports:
+      - "4006:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:4002/data-analytics?schema=public
+      - BACKEND_URL=http://host.docker.internal:4001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env

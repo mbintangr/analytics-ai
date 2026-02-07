@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: #f5f6f8;
+  --foreground: #0f172a;
+  --primary: #0d59f2;
+}
+
+@theme inline {
+  --color-background-light: #f5f6f8;
+  --color-background-dark: #101622;
+  /* Cyberpunk additions */
+  --color-background-cyber: #020617;
+  --color-primary: #0d59f2;
+  --color-secondary: #10b981;
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-bg: rgba(16, 22, 35, 0.7);
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-beam: beam 3s linear infinite;
+  --animate-dash: dash 20s linear infinite;
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 15px #0d59f2, 0 0 30px rgba(13, 89, 242, 0.5); }
+    50% { box-shadow: 0 0 30px #0d59f2, 0 0 60px rgba(13, 89, 242, 0.8); }
+  }
+  @keyframes beam {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+  @keyframes dash {
+    to { stroke-dashoffset: 1000; }
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #101622;
+    --foreground: #ffffff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  @apply antialiased selection:bg-primary/30 selection:text-white;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #101622;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0d59f2;
+}

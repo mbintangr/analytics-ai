@@ -1,0 +1,28 @@
+---
+config:
+  theme: light
+  flowchart:
+    curve: linear
+---
+
+flowchart LR
+    %% Tahap Awal
+    %% Start([Mulai]) --> A[Identifikasi Masalah]
+    A[Identifikasi Masalah] --> B[Studi Literatur]
+
+    %% Kelompok Pengembangan
+    subgraph DevPhase [Pengembangan Sistem]
+        direction TB
+        C[Perancangan Sistem] --> D[Implementasi Sistem]
+    end
+
+    %% Kelompok Penilaian
+    subgraph EvalPhase [Evaluasi Sistem]
+        direction TB
+        E[Pengujian Sistem] --> F[Evaluasi Hasil]
+    end
+
+    %% Koneksi antar tahap
+    B --> C
+    D --> E
+    %% F --> End([Selesai])

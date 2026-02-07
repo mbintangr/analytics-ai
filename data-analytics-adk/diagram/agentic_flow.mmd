@@ -1,0 +1,64 @@
+---
+config:
+  theme: light
+  flowchart:
+    curve: linear
+---
+
+graph TD
+    User((User))
+    User2((User))
+
+    subgraph Root_Agent_Sequence [agent.py - Agentic Workflow]
+        UA[Data Understanding Agent]
+        AA[Data Assessing Agent]
+        
+        subgraph Preprocessing_Loop [Data Preprocessing LoopAgent]
+            Cleaner[Data Cleaning Agent]
+            LoopAssessor[In-Loop Assessing Agent]
+            
+            Cleaner -->|Executes Cleaning Tools| LoopAssessor
+            LoopAssessor -- Issues Persist --> Cleaner
+        end
+        
+        BQA[Business Questions Agent]
+        
+        subgraph EDA_Orchestration [EDA Agent Sequence]
+            EDA_Manager[EDA Agent]
+            
+            subgraph Insight_Flow [Prep & Insight Agent]
+                Prep[Data Preparation Agent]
+                Insight[Insights Gatherer Agent]
+                Prep -->|Creates Aggregated Data| Insight
+            end
+            
+            EDA_Manager -- For each Question --> Prep
+        end
+        
+        Explainer[Data Explainer Agent]
+    end
+
+    subgraph Tooling_Layer [Tooling Layer]
+        AgentTools[agentTools.py - State Management]
+        DataTools[dataTools.py - Pandas Logic]
+        
+        AgentTools --> DataTools
+    end
+
+    User2 -->|Upload Dataset| UA
+    UA -->|Report: Understanding| AA
+    AA -->|Report: Assessment| Preprocessing_Loop
+    LoopAssessor -- Data Clean --> BQA
+    BQA -->|List of Questions| EDA_Manager
+    Insight -->|Insights & Visualizations| EDA_Manager
+    EDA_Manager -->|Consolidated Findings| Explainer
+    Explainer -->|Final Markdown Report| User
+
+    %% Tool Access
+    UA -.-|Get Info| AgentTools
+    AA -.-|Profile Cols| AgentTools
+    Cleaner -.-|Fill Nulls/Drop| AgentTools
+    Prep -.-|Group/Pivot| AgentTools
+    Insight -.-|Calc Stats & Plot| AgentTools
+
+    AgentTools <-->|Read/Write Parquet| StateService

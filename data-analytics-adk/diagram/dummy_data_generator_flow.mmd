@@ -1,0 +1,28 @@
+---
+config:
+  theme: light
+---
+
+flowchart LR
+    %% Setup
+    Start([Start]) --> Config[Load Settings]
+    Config --> Base[Generate Base Clean Data]
+
+    %% Logic Branch
+    Base --> Check{Is Mode 'Dirty'?}
+
+    %% Dirty Path
+    Check -- Yes --> Noise[Inject Noise & Errors:
+    • Missing Values
+    • Outliers
+    • Negative Values
+    • Text Inconsistencies
+    • Date Errors]
+
+    %% Clean Path
+    Check -- No --> Calc
+
+    %% Finalize
+    Noise --> Calc[Calculate Total Bill]
+    Calc --> Export[Export to CSV]
+    Export --> End([End])
