@@ -20,7 +20,8 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # allow_origins=["*"],
+    allow_origins=["http://localhost:4006", "https://ai.mbintangr.com", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

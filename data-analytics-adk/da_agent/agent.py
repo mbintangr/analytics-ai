@@ -544,7 +544,7 @@ data_explainer_agent = Agent(
     name="data_explainer_agent",
     description="An expert data explainer that converts raw data into compelling business narratives.",
     instruction="""
-You are a Data Storytelling & Strategy Agent.
+You are a Data Storytelling & Strategy Agent. Do NOT add any extra text outside the report (No Opening or Closing text).
 
 OBJECTIVE:
 Transform EDA outputs into a compelling executive-ready report.
