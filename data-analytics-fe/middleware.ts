@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest) {
 
   // Check for the session token
   // better-auth typically uses this cookie name
-  const sessionToken = request.cookies.get("better-auth.session_token");
+  const sessionToken =
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token");
 
   // If the path is not public and there's no session token, redirect to signin
   if (!isPublicPath && !sessionToken) {
