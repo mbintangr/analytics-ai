@@ -46,7 +46,7 @@ from .agentTools import (
     plot_chart_tool,
     list_output_files_tool,
 )
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from da_agent.callbacks.before_agent_callback import log_before_agent_execution
@@ -495,9 +495,9 @@ class visualizationSchema(BaseModel):
 
 class insightSchema(BaseModel):
     insight: str = Field(description="The insight derived from the data")
-    evidence: str = Field(description="The evidence supporting the insight")
-    insight_table: str = Field(description="The data table supporting the insight")
-    visualizations: List[visualizationSchema] = Field(description="The list of visualization")
+    evidence: Optional[str] = Field(default=None, description="The evidence supporting the insight")
+    insight_table: Optional[str] = Field(default=None, description="The data table supporting the insight")
+    visualizations: List[visualizationSchema] = Field(default_factory=list, description="The list of visualization")
 
 class edaAgentOutputSchema(BaseModel):
     insights: List[insightSchema]
