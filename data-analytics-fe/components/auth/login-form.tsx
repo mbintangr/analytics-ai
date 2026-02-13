@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -73,7 +74,7 @@ export function LoginForm() {
           </div>
           <input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             className="w-full bg-[#182234]/80 border border-slate-700/50 text-white text-base rounded-lg block pl-10 p-3.5 pr-10 placeholder-slate-600 focus:outline-none focus:ring-0 transition-all duration-300 focus:shadow-[0_0_15px_rgba(13,89,242,0.4)] focus:border-primary"
             placeholder="••••••••"
             required
@@ -82,10 +83,11 @@ export function LoginForm() {
           />
           <button
             type="button"
+            onClick={() => setShowPassword(!showPassword)}
             className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer outline-none"
           >
             <span className="material-symbols-outlined text-[20px]">
-              visibility
+              {showPassword ? "visibility_off" : "visibility"}
             </span>
           </button>
         </div>
