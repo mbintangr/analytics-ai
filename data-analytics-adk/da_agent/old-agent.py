@@ -88,6 +88,9 @@ OBJECTIVE:
 Produce a strictly factual, schema-level understanding of the dataset.
 This agent establishes the ONLY authoritative reference for column names and data types.
 
+AVAILABLE TOOLS:
+- get_understanding_report(key="raw_data")
+
 MANDATORY EXECUTION RULES:
 1. You MUST call get_understanding_report(key="raw_data") as your FIRST and ONLY tool call.
 2. You MUST NOT call any other tool.
@@ -141,6 +144,14 @@ You are a Data Quality Assessment Agent.
 OBJECTIVE:
 Diagnose data quality issues and produce an actionable cleaning plan.
 You MUST NOT modify data.
+
+AVAILABLE TOOLS:
+- get_data_state_list()
+- get_assessment_report(key)
+- get_unique_values_tool(column, key)
+- get_unique_values_count_tool(column, key)
+- get_rows_by_condition_tool(column, value, key)
+- get_null_values_rows_tool(column, key)
 
 EXECUTION STEPS:
 1. Call get_data_state_list().
@@ -199,6 +210,26 @@ You are a Data Cleaning Execution Agent.
 OBJECTIVE:
 Execute the Cleaning Recommendations exactly using tools.
 You MUST NOT assess, verify, or interpret results.
+
+AVAILABLE TOOLS:
+- `copy_data_state_tool(source_key, target_key)`: Required first step to create a working copy.
+- `merge_data_tool(right_key, left_key, ...)`: Joins two datasets.
+- `remove_null_values_tool(key)`: Drops rows with nulls.
+- `fill_null_values_tool(key, value, method)`: Fills nulls with value or method (ffill/bfill).
+- `impute_missing_values_tool(columns, strategy, key)`: Imputes nulls (mean/median/mode/constant).
+- `remove_duplicate_values_tool(key)`: Drops duplicate rows.
+- `replace_column_value_tool(column, value, new_value, key)`: Replaces specific values.
+- `replace_column_value_regex_tool(column, pattern, new_value, key)`: Replaces values using regex.
+- `change_data_type_tool(columns, data_type, key)`: Casts column types.
+- `create_column_from_expression_tool(new_column, expression, key)`: Creates/updates column via expression.
+- `drop_columns_tool(columns, key)`: Removes columns.
+- `rename_columns_tool(mapping, key)`: Renames columns.
+- `clean_text_column_tool(column, operations, key)`: Text ops (strip/lower/upper/title).
+- `convert_to_datetime_tool(columns, format, key)`: Converts to datetime.
+- `remove_outliers_tool(columns, contamination, threshold, key, method)`: Removes outliers via Isolation Forest or IQR.
+- `clip_values_tool(columns, lower, upper, key)`: Clips values to percentile range.
+- `remove_rows_by_condition_tool(column, value, key, method)`: Removes rows matching a condition (eq, gt, lt, contains...).
+- `save_data_state_tool(key)`: Saves the current dataframe state.
 
 MANDATORY PROCEDURE:
 1. Identify the latest usable data key using get_data_state_list().
@@ -331,6 +362,11 @@ You are a Business Question Formulation Agent.
 OBJECTIVE:
 Generate 5-7 high-impact, data-answerable business questions.
 
+AVAILABLE TOOLS:
+- get_data_state_list()
+- get_understanding_report(key)
+- get_assessment_report(key)
+
 EXECUTION STEPS:
 1. Call get_data_state_list() and select the CLEANEST dataset.
 2. Call get_understanding_report(key).
@@ -378,6 +414,17 @@ Prepare question-specific datasets for visualization and analysis.
 
 INPUT:
 - Business Questions
+
+AVAILABLE TOOLS:
+- `get_data_state_list()`: Check available data states.
+- `copy_data_state_tool(source_key, target_key)`: CRITICAL. Copies data to a new key.
+- `get_top_n_rows_tool(key, n, visualize=False, x_column='Name', ascending=False)`: Get specific examples and optionally plot them.
+- `group_and_aggregate_tool(group_by_columns, agg_columns, key)`: Groups and sums/means/counts.
+- `create_pivot_table_tool(index, columns, values, key)`: Creates pivot tables.
+- `create_column_from_expression_tool(new_column, expression, key)`: Creates calculated columns.
+- `filter_rows_by_condition_tool(column, value, key, method)`: Filters data to KEEP specific rows.
+- `convert_to_datetime_tool(columns, format, key)`: Ensures dates are valid.
+- `save_data_state_tool(key)`: Saves the prepared dataset.
 
 MANDATORY RULES:
 1. Call get_data_state_list().
@@ -438,13 +485,24 @@ INPUT:
 - Business Questions
 - Prepared Data Keys
 
+AVAILABLE TOOLS:
+- `get_data_state_list()`: Check available data states.
+- `get_top_n_rows_tool(key, n, visualize=True, x_column='Name')`: Get specific examples and optionally plot them.
+- `get_group_stats_tool(..., visualize=True)`: Calculates statistics and generates a plot.
+- `get_column_stats_tool(..., visualize=True)`: Analysis distribution and generates a plot.
+- `get_aggregation_scalar_tool(...)`: Get headline metrics (KPIs).
+- `get_data_tool(...)`: General access.
+- `plot_chart_tool(key=..., plot_type=..., x=..., y=...)`: Visualizes EXISTING Aggregated Data.
+    - Use this when `data_preparation_agent` has already created an aggregated key (e.g. `agg_q1...`).
+    - Supported `plot_type`s: 'bar', 'line', 'scatter', 'pie', 'histogram', 'box', 'count'.
+
 EXECUTION STEPS:
 1. Call get_data_state_list().
 2. For EACH question:
    a. Select the correct prepared dataset
    b. Generate statistics using analysis tools
    c. Ensure at least ONE visualization is produced
-3. Record visualization filenames EXACTLY as returned.   
+3. Record visualization filenames EXACTLY as returned.
 
 OUTPUT FORMAT (REQUIRED FOR EACH INSIGHT):
 - Insight:
@@ -496,7 +554,6 @@ class visualizationSchema(BaseModel):
 class insightSchema(BaseModel):
     insight: str = Field(description="The insight derived from the data")
     evidence: str = Field(description="The evidence supporting the insight")
-    insight_table: str = Field(description="The data table supporting the insight")
     visualizations: List[visualizationSchema] = Field(description="The list of visualization")
 
 class edaAgentOutputSchema(BaseModel):
@@ -512,7 +569,7 @@ You are an Exploratory Data Analysis Coordinator.
 OBJECTIVE:
 Run EDA for EACH business question and consolidate results.
 
-AVAILABLE AGENTS:
+AVAILABLE TOOLS:
 - prep_insight_agent
 
 EXECUTION RULES:
@@ -558,6 +615,9 @@ Transform EDA outputs into a compelling executive-ready report.
 
 INPUT:
 - EDA Report
+
+AVAILABLE TOOLS:
+- list_output_files_tool()
 
 MANDATORY RULES:
 1. Call list_output_files_tool().

@@ -14,7 +14,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - postgres
-      - minio
+      # - minio
       - redis
 
   celery_worker:
@@ -45,17 +45,17 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  minio:
-    image: minio/minio
-    ports:
-      - "4003:9000"
-      - "4004:9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
+  # minio:
+  #   image: minio/minio
+  #   ports:
+  #     - "4003:9000"
+  #     - "4004:9001"
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  #   command: server /data --console-address ":9001"
+  #   volumes:
+  #     - minio_data:/data
 
   redis:
     image: redis:alpine
@@ -66,7 +66,7 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
+  # minio_data:
   redis_data:
 
 networks:

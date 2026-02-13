@@ -6,6 +6,7 @@ import { FaCheck } from "react-icons/fa";
 import { RiPsychotherapyLine } from "react-icons/ri";
 import { MdQueryStats } from "react-icons/md";
 import { TbFileDescription } from "react-icons/tb";
+import { ProcessLogsTable, ProcessLog } from "./process-logs-table";
 
 interface ProcessingViewProps {
   className?: string;
@@ -16,8 +17,15 @@ interface ProcessingViewProps {
 
 type StepStatus = "pending" | "processing" | "completed";
 
-export function ProcessingView({ className, status = "PROCESSING", filename, createdAt }: ProcessingViewProps) {
+
+
+import { useRouter } from "next/navigation";
+
+export function ProcessingView({ className, status = "PROCESSING", filename, createdAt, reportId }: ProcessingViewProps & { reportId?: string }) {
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [logs, setLogs] = useState<ProcessLog[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (createdAt) {
@@ -37,6 +45,38 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     }, 1000);
     return () => clearInterval(timer);
   }, [createdAt]);
+
+  useEffect(() => {
+    if (!reportId) return;
+
+    const fetchLogs = async () => {
+      try {
+        const res = await fetch(`/api/report/${reportId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.status === "ERROR") {
+          router.push("/");
+          return;
+        }
+
+        if (data.processes) {
+          setLogs((prev) => {
+            // Only update if length changed to avoid too many re-renders or simple check
+            if (prev.length !== data.processes.length) return data.processes;
+            return prev;
+          });
+        }
+      } catch (e) {
+        console.error("Error fetching logs in processing view", e);
+      }
+    };
+
+    fetchLogs();
+    const logInterval = setInterval(fetchLogs, 3000);
+    return () => clearInterval(logInterval);
+  }, [reportId, router]);
+
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -98,7 +138,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
         <div className="flex flex-1 overflow-hidden">
 
           {/* Header Info Card */}
-          <div className="absolute top-48 left-1/2 -translate-x-1/2 z-20">
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-4">
             <div className="flex flex-col gap-1 backdrop-blur-md bg-slate-900/40 border border-glass-border p-4 rounded-xl shadow-2xl min-w-fit">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Filename</span>
@@ -114,53 +154,84 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                 </div>
               </div>
             </div>
+
+            {/* Logs Toggle */}
+            <button
+              onClick={() => setShowLogs(!showLogs)}
+              className="px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm"
+            >
+              {showLogs ? "Hide System Logs" : "Show System Logs"}
+            </button>
           </div>
 
           {/* Main Content Area */}
           <main className="flex-1 relative overflow-hidden flex flex-col items-center justify-center p-12 bg-background-cyber/50">
-            {/* Progress Nodes */}
-            <div className="w-full max-w-5xl relative flex items-center justify-between h-48">
-              {/* Connector Lines */}
-              <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-slate-800 -translate-y-1/2 z-0 w-full mx-12"></div>
-              {/* Active Beam Line */}
-              <div
-                className="absolute left-0 top-1/2 h-0.5 bg-linear-to-r from-secondary via-secondary to-primary -translate-y-1/2 z-0 mx-12 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
-                style={{ width: getProgressWidth() }}
-              ></div>
 
-              {/* Node 1: Preprocessing */}
-              <StatusNode
-                title="Data Preprocessing"
-                status={getStepStatus("data_preprocessing_agent")}
-                icon={<FaCheck />}
-                detail="Understanding, Assessing, and Cleaning"
-              />
+            {showLogs ? (
+              <div className="w-full max-w-5xl h-[60vh] backdrop-blur-xl bg-slate-950/80 border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
+                <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                  <h3 className="font-mono text-sm text-primary uppercase tracking-wider">System Execution Logs</h3>
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      <span className="text-[10px] text-blue-300">AGENT</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                      <span className="text-[10px] text-green-300">TOOL</span>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Node 2: Business Questions */}
-              <StatusNode
-                title="Business Questions"
-                status={getStepStatus("business_questions_agent")}
-                icon={<RiPsychotherapyLine />}
-                detail="Formulating Business Questions"
-              />
 
-              {/* Node 3: EDA */}
-              <StatusNode
-                title="Exploratory Analysis"
-                status={getStepStatus("eda_agent")}
-                icon={<MdQueryStats />}
-                detail="Performing Exploratory Data Analysis"
-              />
+                <ProcessLogsTable logs={logs} className="flex-1 p-0" />
 
-              {/* Node 4: Explanation */}
-              <StatusNode
-                title="Data Explanation"
-                status={getStepStatus("data_explainer_agent")}
-                icon={<TbFileDescription />}
-                detail="Generating Final Report"
-              />
+              </div>
+            ) : (
+              /* Progress Nodes */
+              <div className="w-full max-w-5xl relative flex items-center justify-between h-48 animate-in fade-in zoom-in duration-500">
+                {/* Connector Lines */}
+                <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-slate-800 -translate-y-1/2 z-0 w-full mx-12"></div>
+                {/* Active Beam Line */}
+                <div
+                  className="absolute left-0 top-1/2 h-0.5 bg-linear-to-r from-secondary via-secondary to-primary -translate-y-1/2 z-0 mx-12 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
+                  style={{ width: getProgressWidth() }}
+                ></div>
 
-            </div>
+                {/* Node 1: Preprocessing */}
+                <StatusNode
+                  title="Data Preprocessing"
+                  status={getStepStatus("data_preprocessing_agent")}
+                  icon={<FaCheck />}
+                  detail="Understanding, Assessing, and Cleaning"
+                />
+
+                {/* Node 2: Business Questions */}
+                <StatusNode
+                  title="Business Questions"
+                  status={getStepStatus("business_questions_agent")}
+                  icon={<RiPsychotherapyLine />}
+                  detail="Formulating Business Questions"
+                />
+
+                {/* Node 3: EDA */}
+                <StatusNode
+                  title="Exploratory Analysis"
+                  status={getStepStatus("eda_agent")}
+                  icon={<MdQueryStats />}
+                  detail="Performing Exploratory Data Analysis"
+                />
+
+                {/* Node 4: Explanation */}
+                <StatusNode
+                  title="Data Explanation"
+                  status={getStepStatus("data_explainer_agent")}
+                  icon={<TbFileDescription />}
+                  detail="Generating Final Report"
+                />
+
+              </div>
+            )}
           </main>
         </div>
       </div>

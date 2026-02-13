@@ -35,6 +35,26 @@ export async function GET(
     }
 
     const data = await res.json();
+
+    // Fetch process logs from Prisma
+    try {
+      const { prisma } = await import("@/lib/prisma");
+      const processes = await prisma.analysisProcess.findMany({
+        where: {
+          analysisSessionId: id,
+        },
+        orderBy: {
+          timestamp: "asc",
+        },
+      });
+      data.processes = processes;
+    } catch (dbError) {
+      console.error("Error fetching process logs:", dbError);
+      // Determine if we should fail the request or just log the error and continue without logs.
+      // For now, let's continue without logs to allow report view to function.
+      data.processes = [];
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Report Proxy Error:", error);

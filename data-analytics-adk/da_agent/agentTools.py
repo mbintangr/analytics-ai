@@ -52,6 +52,7 @@ from google.adk.tools.tool_context import ToolContext
 import json
 import ast
 import os
+import gc
 
 
 def _parse_argument(arg):
@@ -94,6 +95,9 @@ def _sanitize_data(data):
 
 def _get_dataframe(tool_context: ToolContext, key: str) -> pd.DataFrame:
     """Helper to load DataFrame from disk based on state key."""
+    # Force garbage collection before loading new data
+    gc.collect()
+
     if (
         "data_state" not in tool_context.state
         or key not in tool_context.state["data_state"]
@@ -126,6 +130,9 @@ def _save_dataframe(
     path = os.path.join(output_dir, filename)
 
     df.to_parquet(path)
+    
+    # Force garbage collection after saving
+    gc.collect()
 
     data_state = tool_context.state.get("data_state", {})
     data_state[key] = {"path": path, "description": description}

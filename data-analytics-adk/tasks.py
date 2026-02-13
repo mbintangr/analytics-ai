@@ -11,6 +11,8 @@ import base64
 import re
 import mimetypes
 from celery_app import celery_app
+from celery.signals import task_failure
+from billiard.exceptions import WorkerLostError
 from database import get_db_connection
 from da_agent.agent import root_agent
 from google.adk.runners import Runner
@@ -24,6 +26,11 @@ litellm.suppress_debug_info = True
 litellm.set_verbose = False
 litellm.request_timeout = 1200
 litellm.num_retries = 3
+litellm.telemetry = False
+litellm.turn_off_message_logging = True
+litellm.success_callback = []
+litellm.failure_callback = []
+litellm.callbacks = []
 
 for logger_name in ["litellm", "LiteLLM", "httpx", "httpcore", "openai", "google"]:
     logging.getLogger(logger_name).setLevel(logging.ERROR)
@@ -164,6 +171,7 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         "insights": "",
         "eda_report": "",
         "final_report": "",
+        "session_id": session_id,
     }
 
     await session_service.create_session(
@@ -306,3 +314,28 @@ def process_dataset_task(dataset_path, session_id):
             with conn.cursor() as cur:
                 cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', ("FAILED", session_id))
         raise e
+
+@task_failure.connect
+def on_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, traceback=None, einfo=None, **other):
+    """
+    Signal handler for task failures, including WorkerLostError (SIGKILL/OOM).
+    """
+    print(f"Task failure signal received for task_id={task_id}, exception={exception}")
+    
+    # Check if this is our relevant task
+    # Note: 'sender' here is the task object itself
+    if sender and sender.name == 'tasks.process_dataset_task':
+        session_id = None
+        if kwargs and 'session_id' in kwargs:
+            session_id = kwargs['session_id']
+        elif args and len(args) >= 2:
+            session_id = args[1]
+            
+        if session_id:
+            print(f"Updating session {session_id} status to FAILED due to task failure.")
+            try:
+                with get_db_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', ("FAILED", session_id))
+            except Exception as db_err:
+                print(f"Failed to update status in on_task_failure: {db_err}")
