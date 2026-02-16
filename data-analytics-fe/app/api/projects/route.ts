@@ -104,6 +104,25 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    // Call Python backend to delete files
+    const backendUrl =
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8000";
+    try {
+      const response = await fetch(`${backendUrl}/project/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        console.error(
+          `Failed to delete files from backend: ${response.statusText}`,
+        );
+      }
+    } catch (backendError) {
+      console.error("Error connecting to backend for deletion:", backendError);
+    }
+
     await prisma.analysisSession.delete({
       where: { id },
     });

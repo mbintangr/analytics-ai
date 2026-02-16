@@ -101,6 +101,50 @@ async def get_report(session_id: str):
                     content = f.read()
                 
                 return {"status": status, "report": content}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/project/{session_id}")
+async def delete_project(session_id: str):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Get dataset path
+                cur.execute(
+                    'SELECT "datasetPath", "originalFileName" FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+                
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+
+                dataset_path, original_filename = result
+
+                # Delete dataset file
+                if dataset_path and os.path.exists(dataset_path):
+                    try:
+                        os.remove(dataset_path)
+                        print(f"Deleted dataset: {dataset_path}")
+                    except OSError as e:
+                        print(f"Error deleting dataset {dataset_path}: {e}")
+
+                # Delete output directory                
+                if dataset_path:
+                    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+                    output_dir = os.path.join("outputs", dataset_name)
+                    
+                    if os.path.exists(output_dir):
+                        try:
+                            shutil.rmtree(output_dir)
+                            print(f"Deleted output dir: {output_dir}")
+                        except OSError as e:
+                            print(f"Error deleting output dir {output_dir}: {e}")
+
+                return {"status": "deleted", "session_id": session_id}
+
     except HTTPException:
         raise
     except Exception as e:
