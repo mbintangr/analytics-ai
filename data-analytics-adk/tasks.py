@@ -132,7 +132,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
     APP_NAME = "agents"
     USER_ID = "user_1"
 
-    # Update DB status to PROCESSING (just to be safe, though main.py should have set it)
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', ("PROCESSING", session_id))
@@ -143,17 +142,41 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', ("FAILED", session_id))
         return
 
-    df = pd.read_csv(dataset_path)
-
-    session_service = InMemorySessionService()
-    artifact_service = InMemoryArtifactService()
-
     dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
     output_dir = os.path.join("outputs", dataset_name)
     os.makedirs(output_dir, exist_ok=True)
-
     raw_data_path = os.path.join(output_dir, "raw_data.parquet")
-    df.to_parquet(raw_data_path)
+
+    try:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        import gc
+        
+        chunksize = 50000
+        writer = None
+        
+        with pd.read_csv(dataset_path, chunksize=chunksize) as reader:
+            for i, chunk in enumerate(reader):
+                table = pa.Table.from_pandas(chunk)
+                
+                if writer is None:
+                    writer = pq.ParquetWriter(raw_data_path, table.schema)
+                
+                writer.write_table(table)
+                
+                del chunk
+                del table
+                gc.collect()
+            
+        if writer:
+            writer.close()
+            
+    except Exception as e:
+        print(f"Chunked conversion failed: {e}")
+        raise e
+
+    session_service = InMemorySessionService()
+    artifact_service = InMemoryArtifactService()
 
     initial_state = {
         "output_dir": output_dir,

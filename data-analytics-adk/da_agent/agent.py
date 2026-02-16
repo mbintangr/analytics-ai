@@ -464,6 +464,7 @@ STRICT CONSTRAINTS:
         get_column_stats_tool,
         get_aggregation_scalar_tool,
         get_data_tool,
+        create_column_from_expression_tool,
         plot_chart_tool,
     ],
     output_key="insights",

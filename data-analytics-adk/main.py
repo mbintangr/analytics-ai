@@ -154,5 +154,117 @@ async def delete_project(session_id: str):
 
 
 
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Chunked Upload Endpoints
+
+@app.post("/upload/init")
+async def init_upload(filename: str = Form(...), user_id: str = Form(...)):
+    """Initialize a chunked upload."""
+    try:
+        upload_id = str(uuid.uuid4())
+        temp_dir = os.path.join("datasets", "uploads", "temp", upload_id)
+        os.makedirs(temp_dir, exist_ok=True)
+        return {"upload_id": upload_id}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload/chunk")
+async def upload_chunk(
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...),
+    file: UploadFile = File(...)
+):
+    """Upload a single chunk."""
+    try:
+        temp_dir = os.path.join("datasets", "uploads", "temp", upload_id)
+        if not os.path.exists(temp_dir):
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        
+        chunk_path = os.path.join(temp_dir, f"part_{chunk_index}")
+        with open(chunk_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return {"status": "received", "chunk_index": chunk_index}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload/complete")
+async def complete_upload(
+    upload_id: str = Form(...),
+    filename: str = Form(...),
+    user_id: str = Form(...)
+):
+    """Reassemble chunks and trigger analysis."""
+    try:
+        temp_dir = os.path.join("datasets", "uploads", "temp", upload_id)
+        if not os.path.exists(temp_dir):
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        
+        # Reassemble file
+        chunks = sorted([f for f in os.listdir(temp_dir) if f.startswith("part_")], key=lambda x: int(x.split("_")[1]))
+        
+        if not chunks:
+             raise HTTPException(status_code=400, detail="No chunks found")
+
+        # Generate session ID and final path
+        session_id = str(uuid.uuid4())
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        upload_dir = os.path.join("datasets", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        final_file_path = os.path.join(
+            upload_dir, f"{timestamp}_{filename}_{session_id}"
+        )
+
+        with open(final_file_path, "wb") as outfile:
+            for chunk in chunks:
+                chunk_path = os.path.join(temp_dir, chunk)
+                with open(chunk_path, "rb") as infile:
+                    shutil.copyfileobj(infile, outfile)
+
+        # Cleanup temp dir
+        shutil.rmtree(temp_dir)
+
+        # Create DB record (Logic copied from /analyze)
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO "AnalysisSession" 
+                    (id, "userId", title, "originalFileName", "datasetPath", status, "createdAt")
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    """,
+                    (
+                        session_id, 
+                        user_id, 
+                        f"Analysis of {filename}", 
+                        filename, 
+                        final_file_path, 
+                        "PROCESSING"
+                    )
+                )
+
+        # Trigger Celery Task
+        process_dataset_task.delay(final_file_path, session_id)
+
+        return {"session_id": session_id, "status": "processing"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

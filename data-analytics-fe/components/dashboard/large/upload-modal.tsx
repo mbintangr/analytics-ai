@@ -20,6 +20,8 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Processing...");
+  const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
@@ -58,11 +60,15 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
     }
   };
 
+
+
   const reset = () => {
     setFile(null);
     setHeaders([]);
     setRows([]);
     setIsUploading(false);
+    setProgress(0);
+    setLoadingText("Processing...");
   };
 
   const handleClose = () => {
@@ -81,20 +87,72 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
 
     try {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("user_id", userId);
+      setLoadingText("Initializing upload...");
+      setProgress(0);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001"}/analyze`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
+      const CHUNK_SIZE = 20 * 1024 * 1024; // 20MB chunks
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+      // 1. Initialize Upload
+      const initFormData = new FormData();
+      initFormData.append("filename", file.name);
+      initFormData.append("user_id", userId);
+
+      const initResponse = await fetch(`${API_URL}/upload/init`, {
         method: "POST",
-        body: formData,
+        body: initFormData,
       });
 
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
+      if (!initResponse.ok) {
+        throw new Error(`Init failed: ${initResponse.statusText}`);
       }
 
-      const data = await response.json();
+      const { upload_id } = await initResponse.json();
+
+      // 2. Upload Chunks
+      for (let i = 0; i < totalChunks; i++) {
+        setLoadingText(`Uploading part ${i + 1} of ${totalChunks}...`);
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(file.size, start + CHUNK_SIZE);
+        const chunk = file.slice(start, end);
+
+        const chunkFormData = new FormData();
+        chunkFormData.append("upload_id", upload_id);
+        chunkFormData.append("chunk_index", i.toString());
+        chunkFormData.append("file", chunk);
+
+        const chunkResponse = await fetch(`${API_URL}/upload/chunk`, {
+          method: "POST",
+          body: chunkFormData,
+        });
+
+        if (!chunkResponse.ok) {
+          throw new Error(`Chunk ${i} upload failed: ${chunkResponse.statusText}`);
+        }
+
+        // Update progress
+        const currentProgress = Math.round(((i + 1) / totalChunks) * 100);
+        setProgress(currentProgress);
+      }
+
+      // 3. Complete Upload
+      setLoadingText("Finalizing and processing...");
+      const completeFormData = new FormData();
+      completeFormData.append("upload_id", upload_id);
+      completeFormData.append("filename", file.name);
+      completeFormData.append("user_id", userId);
+
+      const completeResponse = await fetch(`${API_URL}/upload/complete`, {
+        method: "POST",
+        body: completeFormData,
+      });
+
+      if (!completeResponse.ok) {
+        throw new Error(`Completion failed: ${completeResponse.statusText}`);
+      }
+
+      const data = await completeResponse.json();
 
       // Success - close modal and redirect
       handleClose();
@@ -103,8 +161,10 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
       }
     } catch (error) {
       console.error("Analysis failed:", error);
+      alert(`Upload failed: ${error}`); // Simple alert for now
     } finally {
       setIsUploading(false);
+      setProgress(0);
     }
   };
 
@@ -244,13 +304,19 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
           <button
             disabled={!file || isUploading}
             onClick={handleGenerateInsights}
-            className="cursor-pointer flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-[0_0_15px_rgba(13,89,242,0.4)] transition-all hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(13,89,242,0.6)] disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+            className="cursor-pointer flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-[0_0_15px_rgba(13,89,242,0.4)] transition-all hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(13,89,242,0.6)] disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer min-w-[180px]"
           >
             {isUploading ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-lg">sync</span>
-                Processing...
-              </>
+              <div className="flex flex-col items-center justify-center w-full">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined animate-spin text-lg">sync</span>
+                  <span>{progress}%</span>
+                </div>
+                {/* Tiny progress bar bottom */}
+                <div className="w-full h-1 bg-white/30 rounded mt-1 overflow-hidden">
+                  <div className="h-full bg-white transition-all duration-300 ease-out" style={{ width: `${progress}%` }}></div>
+                </div>
+              </div>
             ) : (
               <>
                 <IoRocket className="text-lg" />
