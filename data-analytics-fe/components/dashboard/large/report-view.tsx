@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { IoArrowBackOutline } from "react-icons/io5";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProcessingView } from "./processing-view";
 import { ProcessLogsTable, ProcessLog } from "./process-logs-table";
 
@@ -32,6 +33,7 @@ export function ReportView({
   createdAt,
   reportId,
 }: ReportViewProps & { reportId?: string }) {
+  const router = useRouter();
   const [internalStatus, setInternalStatus] = React.useState(status);
   const [internalReportContent, setInternalReportContent] = React.useState(reportContent);
   const [internalImageBaseUrl, setInternalImageBaseUrl] = React.useState(imageBaseUrl);
@@ -56,7 +58,12 @@ export function ReportView({
         if (!res.ok) return;
         const data = await res.json();
 
-        if (data.status) setInternalStatus(data.status);
+        if (data.status) {
+          if (data.status === "COMPLETED" && internalStatus !== "COMPLETED") {
+            router.refresh();
+          }
+          setInternalStatus(data.status);
+        }
         if (data.report) setInternalReportContent(data.report);
         if (data.processes) setInternalProcesses(data.processes);
 

@@ -567,7 +567,7 @@ MANDATORY RULES:
 
 REPORT STRUCTURE (Strictly Follow This Format):
     
-# [Title: Catchy & Professional]
+# [Title: Catchy & Professional, Mention the dataset about. e.g. "Global Weather Data Analysis Report"]
 
 ## Executive Summary
 [The "TL;DR". Start with "The Big Picture" or "Executive Summary". 
