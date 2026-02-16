@@ -157,7 +157,7 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         
         with pd.read_csv(dataset_path, chunksize=chunksize) as reader:
             for i, chunk in enumerate(reader):
-                table = pa.Table.from_pandas(chunk)
+                table = pa.Table.from_pandas(chunk, preserve_index=False)
                 
                 if writer is None:
                     writer = pq.ParquetWriter(raw_data_path, table.schema)
