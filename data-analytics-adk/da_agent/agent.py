@@ -429,7 +429,7 @@ insights_gatherer_agent = Agent(
     name="insights_gatherer_agent",
     description="An insights gatherer agent.",
     instruction="""
-You are an Insights Generation Agent.
+You are an Insights Gatherer Agent. Your task is to extract insights from the prepared data. If in your task you need to create or modify a dataset, it is not your task. Please tell the orchestrator to do it.
 
 OBJECTIVE:
 Extract quantitative insights supported by plots.
@@ -464,7 +464,6 @@ STRICT CONSTRAINTS:
         get_column_stats_tool,
         get_aggregation_scalar_tool,
         get_data_tool,
-        create_column_from_expression_tool,
         plot_chart_tool,
     ],
     output_key="insights",

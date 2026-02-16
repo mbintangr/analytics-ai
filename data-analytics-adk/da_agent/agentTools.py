@@ -95,7 +95,7 @@ def _sanitize_data(data):
     return str(data)
 
 
-def _get_dataframe(tool_context: ToolContext, key: str) -> pd.DataFrame:
+def _get_dataframe(tool_context: ToolContext, key: str, columns: list[str] | None = None) -> pd.DataFrame:
     """Helper to load DataFrame from disk based on state key."""
     # Force garbage collection before loading new data
     gc.collect()
@@ -110,14 +110,17 @@ def _get_dataframe(tool_context: ToolContext, key: str) -> pd.DataFrame:
     if "path" not in state_item:
         if "data" in state_item and isinstance(state_item["data"], pd.DataFrame):
             # Fallback for legacy/tests if needed
-            return state_item["data"]
+            df = state_item["data"]
+            if columns:
+                 return df[columns]
+            return df
         raise ValueError(f"Path not found for data state '{key}'.")
 
     path = state_item["path"]
     if not os.path.exists(path):
         raise FileNotFoundError(f"Data file not found at {path}")
 
-    return pd.read_parquet(path)
+    return pd.read_parquet(path, columns=columns)
 
 
 def _save_dataframe(
@@ -403,7 +406,7 @@ def get_unique_values_tool(
         print(
             f"Tool 'get_unique_values_tool' called with parameters: column={column}, key={key}, max_unique_values={max_unique_values}"
         )
-        df = _get_dataframe(tool_context, key)
+        df = _get_dataframe(tool_context, key, columns=[column])
         unique_values = get_unique_values(df, column, max_unique_values)
 
         return [
@@ -436,7 +439,7 @@ def get_unique_values_count_tool(
         print(
             f"Tool 'get_unique_values_count_tool' called with parameters: column={column}, key={key}, limit={limit}"
         )
-        df = _get_dataframe(tool_context, key)
+        df = _get_dataframe(tool_context, key, columns=[column])
         unique_values_count = get_unique_values_count(df, column)
 
         total_unique = len(unique_values_count)
@@ -512,6 +515,22 @@ def get_null_values_rows_tool(
         print(
             f"Tool 'get_null_values_rows_tool' called with parameters: column={column}, key={key}, limit={limit}"
         )
+        # We need all columns to show the row, but if the intention is just to find rows where a specific column is null, 
+        # we might need the full row. 
+        # Wait, get_null_values_rows returns rows, so it needs all columns or at least the ones helpful to identify the row.
+        # The tool definition says "Get the null values rows in the data".
+        # If I change it to load only `column`, I can't return the full row content.
+        # Let's check `get_null_values_rows` implementation in `dataTools.py`.
+        # It does `df[df[column].isnull()].head(limit)`.
+        # So if I only load `column`, I can only return that column's null values... which is useless.
+        # BUT, if the goal is to just IDENTIFY them, maybe index is enough?
+        # The standard usage usually implies seeing the data context.
+        # I'LL SKIP THIS ONE if it requires full row data. 
+        # Re-reading: "return ... rows.to_dict(orient='records')". Yes, it returns full rows.
+        # So I CANNOT optimize this one easily without changing the tool's contract or only returning the specific column.
+        # Plan said: "Optimize get_null_values_rows_tool". I'll skip it effectively or just load the column to check nulls, obtain index, then load specific rows? 
+        # Parquet doesn't support random row access efficiently.
+        # I will LEAVE THIS ONE alone for now to avoid breaking behavior.
         df = _get_dataframe(tool_context, key)
         rows = get_null_values_rows(df, column, limit)
 
@@ -1975,7 +1994,7 @@ def get_column_stats_tool(
         print(
             f"Tool 'get_column_stats_tool' called with parameters: column={column}, key={key}, visualize={visualize}, plot_type={plot_type}"
         )
-        df = _get_dataframe(tool_context, key)
+        df = _get_dataframe(tool_context, key, columns=[column])
         stats = get_column_stats(df, column)
 
         msg = f"Statistics for column '{column}':\n{stats}"
@@ -2078,7 +2097,7 @@ def get_aggregation_scalar_tool(
         print(
             f"Tool 'get_aggregation_scalar_tool' called with parameters: column={column}, agg={agg}, key={key}"
         )
-        df = _get_dataframe(tool_context, key)
+        df = _get_dataframe(tool_context, key, columns=[column])
         result = get_aggregation_scalar(df, column, agg)
         return f"Aggregation ({agg}) for column '{column}': {result}"
     except Exception as e:
