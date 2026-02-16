@@ -85,6 +85,8 @@ def _sanitize_data(data):
     elif isinstance(data, (np.integer, int)):
         return int(data)
     elif isinstance(data, (np.floating, float)):
+        if np.isinf(data):
+            return None
         return float(data)
     elif isinstance(data, (np.bool_, bool)):
         return bool(data)

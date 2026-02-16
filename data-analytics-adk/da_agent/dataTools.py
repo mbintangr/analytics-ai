@@ -932,16 +932,34 @@ def plot_bar(
     fig, ax = plt.subplots(figsize=(12, 6))
     warning = None
 
+    plot_df = df.copy()
+
+    if pd.api.types.is_numeric_dtype(plot_df[y]):
+        initial_len = len(plot_df)
+        plot_df = plot_df[~plot_df[y].isin([np.inf, -np.inf])]
+        if len(plot_df) < initial_len:
+            inf_warning = f"Dropped {initial_len - len(plot_df)} rows with infinite values in '{y}'."
+            if warning:
+                warning += f" {inf_warning}"
+            else:
+                warning = inf_warning
+
     if df[x].nunique() > 20:
         if pd.api.types.is_numeric_dtype(df[y]):
-            top_20 = df.groupby(x)[y].sum().nlargest(20).index
+            # Use plot_df to calculate top 20 based on valid values
+            top_20 = plot_df.groupby(x)[y].sum().nlargest(20).index
         else:
-            top_20 = df[x].value_counts().nlargest(20).index
-        plot_df = df[df[x].isin(top_20)]
+            top_20 = plot_df[x].value_counts().nlargest(20).index
+        plot_df = plot_df[plot_df[x].isin(top_20)]
         title = (title or "") + " (Top 20 Categories)"
-        warning = f"High cardinality in '{x}' ({df[x].nunique()} categories): truncated to top 20."
+        warning_card = f"High cardinality in '{x}' ({df[x].nunique()} categories): truncated to top 20."
+        if warning:
+            warning += f" {warning_card}"
+        else:
+            warning = warning_card
     else:
-        plot_df = df
+        # plot_df is already a copy
+        pass
 
     if sort_by:
         if sort_by == "y":
@@ -1015,13 +1033,26 @@ def plot_line(
     color: str = None,
     palette: str | dict | list = None,
     save_path: str = None,
-):
+) -> str | None:
     """
     Create a line plot.
     """
     fig, ax = plt.subplots(figsize=(10, 6))
+    warning = None
 
-    plot_df = df
+    plot_df = df.copy()
+    
+    # Filter infinite values in y first
+    if pd.api.types.is_numeric_dtype(plot_df[y]):
+        initial_len = len(plot_df)
+        plot_df = plot_df[~plot_df[y].isin([np.inf, -np.inf])]
+        if len(plot_df) < initial_len:
+            inf_warning = f"Dropped {initial_len - len(plot_df)} rows with infinite values in '{y}'."
+            if warning:
+                warning += f" {inf_warning}"
+            else:
+                warning = inf_warning
+
     if hue and plot_df[hue].nunique() > 10:
         top_10_hues = plot_df[hue].value_counts().nlargest(10).index
         plot_df = plot_df[plot_df[hue].isin(top_10_hues)]
@@ -1070,12 +1101,35 @@ def plot_scatter(
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
 
-    plot_df = df
+    plot_df = df.copy()
+    
+    # Filter infinite values in x and y first
+    initial_len = len(plot_df)
+    cols_to_check = []
+    if pd.api.types.is_numeric_dtype(plot_df[x]):
+        cols_to_check.append(x)
+    if pd.api.types.is_numeric_dtype(plot_df[y]):
+        cols_to_check.append(y)
+        
+    if cols_to_check:
+        mask = plot_df[cols_to_check].isin([np.inf, -np.inf]).any(axis=1)
+        plot_df = plot_df[~mask]
+        if len(plot_df) < initial_len:
+            inf_warning = f"Dropped {initial_len - len(plot_df)} rows with infinite values in {cols_to_check}."
+            if warning:
+                warning += f" {inf_warning}"
+            else:
+                warning = inf_warning
+
     if hue and plot_df[hue].nunique() > 10:
         top_10_hues = plot_df[hue].value_counts().nlargest(10).index
         plot_df = plot_df[plot_df[hue].isin(top_10_hues)]
         title = (title or "") + f" (Top 10 {hue})"
-        warning = f"High cardinality in '{hue}' ({df[hue].nunique()} groups): truncated to top 10."
+        warning_hue = f"High cardinality in '{hue}' ({df[hue].nunique()} groups): truncated to top 10."
+        if warning:
+             warning += f" {warning_hue}"
+        else:
+             warning = warning_hue
 
     sns.scatterplot(
         data=plot_df,
@@ -1122,12 +1176,28 @@ def plot_histogram(
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
 
-    plot_df = df
+    plot_df = df.copy()
+    
+    # Filter infinite values in x first
+    if pd.api.types.is_numeric_dtype(plot_df[x]):
+        initial_len = len(plot_df)
+        plot_df = plot_df[~plot_df[x].isin([np.inf, -np.inf])]
+        if len(plot_df) < initial_len:
+            inf_warning = f"Dropped {initial_len - len(plot_df)} rows with infinite values in '{x}'."
+            if warning:
+                warning += f" {inf_warning}"
+            else:
+                warning = inf_warning
+
     if hue and plot_df[hue].nunique() > 10:
         top_10_hues = plot_df[hue].value_counts().nlargest(10).index
         plot_df = plot_df[plot_df[hue].isin(top_10_hues)]
         title = (title or "") + f" (Top 10 {hue})"
-        warning = f"High cardinality in '{hue}' ({df[hue].nunique()} groups): truncated to top 10."
+        warning_hue = f"High cardinality in '{hue}' ({df[hue].nunique()} groups): truncated to top 10."
+        if warning:
+            warning += f" {warning_hue}"
+        else:
+            warning = warning_hue
 
     sns.histplot(
         data=plot_df,
@@ -1172,17 +1242,32 @@ def plot_box(
     """
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
+    
+    plot_df = df.copy()
 
-    if x and df[x].nunique() > 20:
-        if pd.api.types.is_numeric_dtype(df[y]):
-            top_20 = df.groupby(x)[y].median().nlargest(20).index
+    # Filter infinite values in y first
+    if pd.api.types.is_numeric_dtype(plot_df[y]):
+        initial_len = len(plot_df)
+        plot_df = plot_df[~plot_df[y].isin([np.inf, -np.inf])]
+        if len(plot_df) < initial_len:
+            inf_warning = f"Dropped {initial_len - len(plot_df)} rows with infinite values in '{y}'."
+            if warning:
+                warning += f" {inf_warning}"
+            else:
+                warning = inf_warning
+
+    if x and plot_df[x].nunique() > 20:
+        if pd.api.types.is_numeric_dtype(plot_df[y]):
+            top_20 = plot_df.groupby(x)[y].median().nlargest(20).index
         else:
-            top_20 = df[x].value_counts().nlargest(20).index
-        plot_df = df[df[x].isin(top_20)]
+            top_20 = plot_df[x].value_counts().nlargest(20).index
+        plot_df = plot_df[plot_df[x].isin(top_20)]
         title = (title or "") + " (Top 20 Categories by Median)"
-        warning = f"High cardinality in '{x}' ({df[x].nunique()} categories): truncated to top 20."
-    else:
-        plot_df = df
+        warning_card = f"High cardinality in '{x}' ({df[x].nunique()} categories): truncated to top 20."
+        if warning:
+            warning += f" {warning_card}"
+        else:
+            warning = warning_card
 
     if hue and plot_df[hue].nunique() > 10:
         top_10_hues = plot_df[hue].value_counts().nlargest(10).index
@@ -1237,7 +1322,11 @@ def plot_heatmap(
     """
     fig, ax = plt.subplots(figsize=(10, 8))
 
-    plot_data = df
+    plot_data = df.copy()
+    
+    if not (index and columns and values):
+        plot_data = plot_data.replace([np.inf, -np.inf], np.nan)
+        
     if index and columns and values:
         plot_data = df.pivot_table(
             index=index, columns=columns, values=values, aggfunc=aggfunc
@@ -1270,14 +1359,29 @@ def plot_count(
     """
     fig, ax = plt.subplots(figsize=(12, 6))
     warning = None
+    
+    plot_df = df.copy()
 
-    if df[x].nunique() > 20:
-        top_20 = df[x].value_counts().nlargest(20).index
-        plot_df = df[df[x].isin(top_20)]
+    # Filter infinite values in x (if numeric) first
+    if pd.api.types.is_numeric_dtype(plot_df[x]):
+        initial_len = len(plot_df)
+        plot_df = plot_df[~plot_df[x].isin([np.inf, -np.inf])]
+        if len(plot_df) < initial_len:
+            inf_warning = f"Dropped {initial_len - len(plot_df)} rows with infinite values in '{x}'."
+            if warning:
+                warning += f" {inf_warning}"
+            else:
+                warning = inf_warning
+
+    if plot_df[x].nunique() > 20:
+        top_20 = plot_df[x].value_counts().nlargest(20).index
+        plot_df = plot_df[plot_df[x].isin(top_20)]
         title = (title or "") + " (Top 20 Categories)"
-        warning = f"High cardinality in '{x}' ({df[x].nunique()} categories): truncated to top 20."
-    else:
-        plot_df = df
+        warning_card = f"High cardinality in '{x}' ({df[x].nunique()} categories): truncated to top 20."
+        if warning:
+            warning += f" {warning_card}"
+        else:
+            warning = warning_card
 
     if hue and plot_df[hue].nunique() > 10:
         top_10_hues = plot_df[hue].value_counts().nlargest(10).index
@@ -1340,7 +1444,10 @@ def plot_pie(
 
     if values:
         if pd.api.types.is_numeric_dtype(df[values]):
-            data = df.groupby(labels)[values].sum()
+            clean_df = df[~df[values].isin([np.inf, -np.inf])]
+            if len(clean_df) < len(df):
+                warning = f"Dropped {len(df) - len(clean_df)} rows with infinite values in '{values}'."
+            data = clean_df.groupby(labels)[values].sum()
         else:
             data = df[labels].value_counts()
     else:
