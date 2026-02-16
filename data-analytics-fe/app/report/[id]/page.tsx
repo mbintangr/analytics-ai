@@ -5,6 +5,7 @@ import { TableOfContents } from "@/components/dashboard/large/table-of-contents"
 import { auth } from "@/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export default async function ReportPage({
   params,
@@ -41,8 +42,16 @@ export default async function ReportPage({
       status = analysisSession.status;
       filename = analysisSession.originalFileName;
       createdAt = analysisSession.createdAt;
+
+      if (status === "FAILED") {
+        redirect("/");
+      }
     }
   } catch (error) {
+    // If redirect throws, let it bubble up (Next.js redirects are exceptions)
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
     console.error("Error fetching session status:", error);
   }
 
