@@ -6,6 +6,7 @@ import { FaCheck } from "react-icons/fa";
 import { RiPsychotherapyLine } from "react-icons/ri";
 import { MdQueryStats } from "react-icons/md";
 import { TbFileDescription } from "react-icons/tb";
+import { IoClose } from "react-icons/io5";
 import { ProcessLogsTable, ProcessLog } from "./process-logs-table";
 
 interface ProcessingViewProps {
@@ -25,6 +26,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
   const [elapsedTime, setElapsedTime] = useState(0);
   const [logs, setLogs] = useState<ProcessLog[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
         if (!res.ok) return;
         const data = await res.json();
 
-        if (data.status === "ERROR") {
+        if (data.status === "FAILED") {
           router.push("/");
           return;
         }
@@ -76,6 +78,25 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     const logInterval = setInterval(fetchLogs, 3000);
     return () => clearInterval(logInterval);
   }, [reportId, router]);
+
+  const handleCancel = async () => {
+    if (!reportId || isCancelling) return;
+    if (!confirm("Are you sure you want to cancel this analysis? This cannot be undone.")) return;
+    try {
+      setIsCancelling(true);
+      const res = await fetch(`/api/report/${reportId}/cancel`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.details || err.error || "Cancel failed");
+      }
+      router.push("/");
+    } catch (error) {
+      console.error("Cancel failed:", error);
+      alert(`Cancel failed: ${error}`);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
 
   const formatTime = (seconds: number) => {
@@ -100,7 +121,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     }
 
     if (status === "COMPLETED") return "completed";
-    if (status === "ERROR") return "pending";
+    if (status === "FAILED") return "pending";
 
     const currentIndex = order.indexOf(currentAgent);
     const stepIndex = order.indexOf(stepName);
@@ -155,13 +176,25 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
               </div>
             </div>
 
-            {/* Logs Toggle */}
-            <button
-              onClick={() => setShowLogs(!showLogs)}
-              className="px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm"
-            >
-              {showLogs ? "Hide System Logs" : "Show System Logs"}
-            </button>
+            {/* Logs Toggle + Cancel */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowLogs(!showLogs)}
+                className="px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm"
+              >
+                {showLogs ? "Hide System Logs" : "Show System Logs"}
+              </button>
+              {reportId && (
+                <button
+                  onClick={handleCancel}
+                  disabled={isCancelling}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-700/50 hover:border-red-500 rounded-full text-xs font-mono uppercase tracking-wider text-red-400 hover:text-red-300 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <IoClose size={14} />
+                  {isCancelling ? "Cancelling..." : "Cancel Analysis"}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Main Content Area */}

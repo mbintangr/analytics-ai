@@ -14,7 +14,7 @@ from celery_app import celery_app
 from celery.signals import task_failure
 from billiard.exceptions import WorkerLostError
 from database import get_db_connection
-from da_agent.agent import root_agent
+from da_agent.agent import create_root_agent, MODEL_CONFIGS, DEFAULT_MODEL
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk.artifacts import InMemoryArtifactService
@@ -127,10 +127,11 @@ def embed_images_in_markdown(markdown_text: str, output_dir: str) -> str:
 
     return re.sub(pattern, replace_match, markdown_text)
 
-async def process_dataset_async(dataset_path: str, session_id: str, query: str = "Please analyze the dataset using tools provided and provide a summary."):
+async def process_dataset_async(dataset_path: str, session_id: str, query: str = "Please analyze the dataset using tools provided and provide a summary.", business_questions: str = "", model_name: str = ""):
     start_time = time.time()
     APP_NAME = "agents"
     USER_ID = "user_1"
+    print("process_dataset_async", business_questions)
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -189,7 +190,8 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         "data_understanding": "",
         "data_assessment": "",
         "data_cleaning": "",
-        "business_questions": "",
+        # "business_questions": "",
+        "business_questions": business_questions,
         "data_preparation": "",
         "insights": "",
         "eda_report": "",
@@ -204,7 +206,7 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         state=initial_state,
     )
 
-    agent = root_agent
+    agent = create_root_agent(model_name or DEFAULT_MODEL)
     runner = Runner(
         app_name=APP_NAME,
         agent=agent,
@@ -327,9 +329,10 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
             )
 
 @celery_app.task
-def process_dataset_task(dataset_path, session_id):
+def process_dataset_task(dataset_path, session_id, business_questions="", model_name=""):
+    print("process_dataset_task", business_questions, "model:", model_name)
     try:
-        asyncio.run(process_dataset_async(dataset_path, session_id))
+        asyncio.run(process_dataset_async(dataset_path, session_id, business_questions=business_questions, model_name=model_name))
     except Exception as e:
         print(f"Task failed: {e}")
         # Update DB with failure

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import uvicorn
 from tasks import process_dataset_task
 from database import get_db_connection
+from celery_app import celery_app
 
 load_dotenv()
 
@@ -66,7 +67,12 @@ async def analyze_file(file: UploadFile = File(...), user_id: str = Form(...)):
                 )
 
         # Trigger Celery Task
-        process_dataset_task.delay(file_path, session_id)
+        result = process_dataset_task.delay(file_path, session_id)
+
+        # Store Celery task ID for cancellation
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('UPDATE "AnalysisSession" SET "celeryTaskId"=%s WHERE id=%s', (result.id, session_id))
 
 
         return {"session_id": session_id, "status": "processing"}
@@ -202,9 +208,12 @@ async def upload_chunk(
 async def complete_upload(
     upload_id: str = Form(...),
     filename: str = Form(...),
-    user_id: str = Form(...)
+    user_id: str = Form(...),
+    business_questions: str = Form(...),
+    model_name: str = Form("")
 ):
     """Reassemble chunks and trigger analysis."""
+    print("/complete endpoint", business_questions)
     try:
         temp_dir = os.path.join("datasets", "uploads", "temp", upload_id)
         if not os.path.exists(temp_dir):
@@ -241,8 +250,8 @@ async def complete_upload(
                 cur.execute(
                     """
                     INSERT INTO "AnalysisSession" 
-                    (id, "userId", title, "originalFileName", "datasetPath", status, "createdAt")
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    (id, "userId", title, "originalFileName", "datasetPath", status, "businessQuestions", "modelName", "createdAt")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     """,
                     (
                         session_id, 
@@ -250,14 +259,115 @@ async def complete_upload(
                         f"Analysis of {filename}", 
                         filename, 
                         final_file_path, 
-                        "PROCESSING"
+                        "PROCESSING",
+                        business_questions or None,
+                        model_name or None
                     )
                 )
 
         # Trigger Celery Task
-        process_dataset_task.delay(final_file_path, session_id)
+        result = process_dataset_task.delay(final_file_path, session_id, business_questions, model_name)
+
+        # Store Celery task ID for cancellation
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('UPDATE "AnalysisSession" SET "celeryTaskId"=%s WHERE id=%s', (result.id, session_id))
 
         return {"session_id": session_id, "status": "processing"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/regenerate/{session_id}")
+async def regenerate_report(session_id: str):
+    """Re-run analysis using the same dataset and business questions from an existing session."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'SELECT "datasetPath", "originalFileName", "userId", "businessQuestions", "modelName" FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+
+                dataset_path, original_filename, user_id, business_questions, model_name = result
+
+                if not dataset_path or not os.path.exists(dataset_path):
+                    raise HTTPException(status_code=400, detail="Original dataset file no longer exists on disk")
+
+                # Create new session
+                new_session_id = str(uuid.uuid4())
+                cur.execute(
+                    """
+                    INSERT INTO "AnalysisSession"
+                    (id, "userId", title, "originalFileName", "datasetPath", status, "businessQuestions", "modelName", "createdAt")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    """,
+                    (
+                        new_session_id,
+                        user_id,
+                        f"Analysis of {original_filename}",
+                        original_filename,
+                        dataset_path,
+                        "PROCESSING",
+                        business_questions or None,
+                        model_name or None
+                    )
+                )
+
+        # Trigger Celery Task
+        result = process_dataset_task.delay(dataset_path, new_session_id, business_questions or "", model_name or "")
+
+        # Store Celery task ID for cancellation
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('UPDATE "AnalysisSession" SET "celeryTaskId"=%s WHERE id=%s', (result.id, new_session_id))
+
+        return {"session_id": new_session_id, "status": "processing"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/cancel/{session_id}")
+async def cancel_analysis(session_id: str):
+    """Cancel a running analysis by revoking its Celery task."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'SELECT "celeryTaskId", status FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+
+                celery_task_id, status = result
+
+                if not status or not status.startswith("PROCESSING"):
+                    raise HTTPException(status_code=400, detail="Analysis is not currently running")
+
+                if celery_task_id:
+                    celery_app.control.revoke(celery_task_id, terminate=True, signal='SIGTERM')
+
+                cur.execute(
+                    'UPDATE "AnalysisSession" SET status=%s WHERE id=%s',
+                    ("CANCELLED", session_id)
+                )
+
+        return {"status": "cancelled", "session_id": session_id}
 
     except HTTPException:
         raise

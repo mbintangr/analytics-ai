@@ -71,7 +71,9 @@ def load_data(filename: str):
             return pd.read_json(filename)
         elif filename.endswith(".parquet"):
             return pd.read_parquet(filename)
-        elif filename.endswith(".xlsx") or filename.endswith(".xls"):
+        elif filename.endswith(".xlsx"):
+            return pd.read_excel(filename, engine="openpyxl")
+        elif filename.endswith(".xls"):
             return pd.read_excel(filename, engine="xlrd")
         else:
             raise ValueError(f"Unsupported file format: {filename}")
@@ -90,7 +92,7 @@ def get_sample_data(df: pd.DataFrame, sample_size: int = 5):
     Returns:
       pd.DataFrame: The sampled data.
     """
-    return df.sample(n=sample_size)
+    return df.sample(n=min(sample_size, len(df)))
 
 
 def get_head_data(df: pd.DataFrame, head_size: int = 5):
@@ -414,16 +416,14 @@ def fill_null_values(df: pd.DataFrame, value: any = None, method: str = "ffill")
     """
     if value is not None:
         return df.fillna(value)
-    if method == "ffill":
-        return df.fillna(method="ffill")
-    elif method == "bfill":
-        return df.fillna(method="bfill")
-    elif method == "pad":
-        return df.fillna(method="pad")
-    elif method == "backfill":
-        return df.fillna(method="backfill")
+    if method in ("ffill", "pad"):
+        return df.ffill()
+    elif method in ("bfill", "backfill"):
+        return df.bfill()
     elif method == "interpolate":
-        return df.fillna(method="interpolate")
+        return df.interpolate()
+    else:
+        raise ValueError(f"Unsupported fill method: {method}")
 
 
 def remove_duplicate_values(df: pd.DataFrame):
@@ -452,6 +452,7 @@ def replace_column_value(df: pd.DataFrame, column: str, value: any, new_value: a
     Returns:
       pd.DataFrame: The data with the value replaced.
     """
+    df = df.copy()
     df[column] = df[column].replace(value, new_value)
     return df
 
@@ -471,6 +472,7 @@ def replace_column_value_regex(
     Returns:
       pd.DataFrame: The data with the value replaced.
     """
+    df = df.copy()
     df[column] = df[column].replace(to_replace=pattern, value=new_value, regex=True)
     return df
 
@@ -487,6 +489,7 @@ def change_data_type(df: pd.DataFrame, columns: list[str], data_type: str):
     Returns:
       pd.DataFrame: The data with the data type changed.
     """
+    df = df.copy()
     for column in columns:
         df[column] = df[column].astype(data_type)
 
@@ -596,6 +599,7 @@ def clean_text_column(
     if column not in df.columns:
         raise ValueError(f"Column {column} not found in dataframe")
 
+    df = df.copy()
     series = df[column].astype(str)
 
     for op in operations:
@@ -1017,7 +1021,7 @@ def plot_bar(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
     return warning
 
@@ -1079,7 +1083,9 @@ def plot_line(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
+
+    return warning
 
 
 def plot_scatter(
@@ -1152,7 +1158,7 @@ def plot_scatter(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
     return warning
 
@@ -1219,7 +1225,7 @@ def plot_histogram(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
     return warning
 
@@ -1300,7 +1306,7 @@ def plot_box(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
     return warning
 
@@ -1339,7 +1345,7 @@ def plot_heatmap(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
 
 def plot_count(
@@ -1414,7 +1420,7 @@ def plot_count(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
     return warning
 
@@ -1501,7 +1507,7 @@ def plot_pie(
     if save_path:
         fig.tight_layout()
         fig.savefig(save_path, bbox_inches="tight")
-        plt.close(fig)
+    plt.close(fig)
 
     return warning
 

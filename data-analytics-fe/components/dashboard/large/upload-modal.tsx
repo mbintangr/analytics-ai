@@ -15,6 +15,16 @@ interface UploadModalProps {
   userId?: string;
 }
 
+const AVAILABLE_MODELS = [
+  { value: "openrouter/xiaomi/mimo-v2-flash", label: "Mimo V2 Flash (Xiaomi)" },
+  { value: "openrouter/openai/gpt-oss-120b:free", label: "GPT OSS 120B (Free)" },
+  { value: "openrouter/openai/gpt-oss-20b:free", label: "GPT OSS 20B (Free)" },
+  { value: "openrouter/nvidia/nemotron-3-nano-30b-a3b:free", label: "Nemotron 3 Nano 30B (Free)" },
+  { value: "openrouter/qwen/qwen3-coder:free", label: "Qwen3 Coder (Free)" },
+  { value: "openrouter/arcee-ai/trinity-large-preview:free", label: "Trinity Large Preview (Free)" },
+  { value: "nvidia_nim/openai/gpt-oss-120b", label: "GPT OSS 120B (NVIDIA NIM)" },
+];
+
 export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -22,6 +32,8 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [loadingText, setLoadingText] = useState("Processing...");
   const [progress, setProgress] = useState(0);
+  const [businessQuestions, setBusinessQuestions] = useState("");
+  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0].value);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
@@ -66,6 +78,8 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
     setFile(null);
     setHeaders([]);
     setRows([]);
+    setBusinessQuestions("");
+    setSelectedModel(AVAILABLE_MODELS[0].value);
     setIsUploading(false);
     setProgress(0);
     setLoadingText("Processing...");
@@ -142,6 +156,8 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
       completeFormData.append("upload_id", upload_id);
       completeFormData.append("filename", file.name);
       completeFormData.append("user_id", userId);
+      completeFormData.append("business_questions", businessQuestions);
+      completeFormData.append("model_name", selectedModel);
 
       const completeResponse = await fetch(`${API_URL}/upload/complete`, {
         method: "POST",
@@ -279,6 +295,48 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Business Questions */}
+              <div className="mt-6">
+                <h3 className="text-lg font-bold leading-tight tracking-tight text-white mb-3">
+                  Business Questions
+                  <span className="text-sm font-normal text-[#90a4cb] ml-2">(Optional)</span>
+                </h3>
+                <p className="text-sm text-[#90a4cb] mb-3">
+                  What specific questions do you want answered from your data? This helps the AI focus its analysis.
+                </p>
+                <textarea
+                  value={businessQuestions}
+                  onChange={(e) => setBusinessQuestions(e.target.value)}
+                  disabled={isUploading}
+                  placeholder="e.g. What are the top revenue drivers? Which customer segments are growing fastest? Are there any seasonal trends?"
+                  className="w-full rounded-lg border border-[#314368] bg-[#182234]/30 px-4 py-3 text-sm text-white placeholder-[#5a6f94] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors resize-none disabled:opacity-50"
+                  rows={4}
+                />
+              </div>
+
+              {/* Model Selector */}
+              <div className="mt-6">
+                <h3 className="text-lg font-bold leading-tight tracking-tight text-white mb-3">
+                  AI Model
+                </h3>
+                <p className="text-sm text-[#90a4cb] mb-3">
+                  Choose the AI model to use for analysis.
+                </p>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={isUploading}
+                  className="w-full rounded-lg border border-[#314368] bg-[#182234]/30 px-4 py-3 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 appearance-none cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2390a4cb' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25em 1.25em' }}
+                >
+                  {AVAILABLE_MODELS.map((model) => (
+                    <option key={model.value} value={model.value} className="bg-[#182234] text-white">
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           )}

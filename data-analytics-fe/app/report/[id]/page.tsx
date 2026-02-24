@@ -43,7 +43,7 @@ export default async function ReportPage({
       filename = analysisSession.originalFileName;
       createdAt = analysisSession.createdAt;
 
-      if (status === "FAILED" || status === "ERROR") {
+      if (status === "FAILED" || status === "CANCELLED") {
         redirect("/");
       }
     }

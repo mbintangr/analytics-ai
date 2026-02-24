@@ -90,8 +90,12 @@ def _sanitize_data(data):
         return float(data)
     elif isinstance(data, (np.bool_, bool)):
         return bool(data)
-    elif pd.isna(data):
-        return None
+    else:
+        try:
+            if pd.isna(data):
+                return None
+        except (ValueError, TypeError):
+            pass
     return str(data)
 
 
@@ -1750,6 +1754,7 @@ def get_top_n_rows_tool(
     n: int = 5,
     ascending: bool = False,
     key: str = "raw_data",
+    new_key: str = None,
     visualize: bool = False,
     plot_type: str = "bar",
     x_column: str = None,
@@ -1764,6 +1769,7 @@ def get_top_n_rows_tool(
         n (int, optional): The number of rows to return. Defaults to 5.
         ascending (bool, optional): Sort ascending? Defaults to False (descending/top).
         key (str, optional): The data key. Defaults to 'raw_data'.
+        new_key (str, optional): If provided, save the filtered top-N result to this data state key for downstream use (e.g. plotting). Defaults to None.
         visualize (bool, optional): Whether to plot the data. Defaults to False.
         plot_type (str, optional): The type of plot. Defaults to 'bar'.
         x_column (str, optional): The column to use for x-axis labels. Required for visualization.
@@ -1782,10 +1788,22 @@ def get_top_n_rows_tool(
         df = _get_dataframe(tool_context, key)
         result_df = get_top_n_rows(df, column, n, ascending)
 
+        # Save filtered result to data state if new_key is provided
+        if new_key:
+            _save_dataframe(
+                tool_context,
+                result_df,
+                new_key,
+                f"Top {n} rows from {key} sorted by {column}",
+            )
+
         output = _truncate_output(
             f"Top {n} rows sorted by {column} ({'ascending' if ascending else 'descending'}):\n{result_df.to_string(index=False)}",
             max_chars=2000,
         )
+
+        if new_key:
+            output += f"\nFiltered data saved to state key: {new_key}"
 
         if visualize and x_column:
             if not save_path:
@@ -2263,7 +2281,7 @@ def plot_chart_tool(
                 save_path=save_path,
             )
         elif plot_type == "line":
-            plot_line(
+            warning = plot_line(
                 df,
                 x=x,
                 y=y,

@@ -83,6 +83,15 @@ model AnalysisSession {
   createdAt  DateTime  @default(now())
   finishedAt DateTime?
 
+  // Business questions for regeneration
+  businessQuestions String? @db.Text
+
+  // Celery task ID for cancellation
+  celeryTaskId String?
+
+  // LLM model used for analysis
+  modelName String?
+
   // Metrics for the dashboard
   durationSeconds Float?
   totalTokens     Int?

@@ -3,7 +3,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { IoArrowBackOutline } from "react-icons/io5";
+import { IoArrowBackOutline, IoReload } from "react-icons/io5";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProcessingView } from "./processing-view";
@@ -39,6 +39,7 @@ export function ReportView({
   const [internalImageBaseUrl, setInternalImageBaseUrl] = React.useState(imageBaseUrl);
   const [internalProcesses, setInternalProcesses] = React.useState<ProcessLog[]>([]);
   const [activeTab, setActiveTab] = React.useState<'report' | 'logs'>('report');
+  const [isRegenerating, setIsRegenerating] = React.useState(false);
 
   // Sync props to state if they change (optional, but good for initial load or re-validation)
   React.useEffect(() => {
@@ -48,7 +49,7 @@ export function ReportView({
   }, [status, reportContent, imageBaseUrl]);
 
   React.useEffect(() => {
-    if (!reportId || (internalStatus === "COMPLETED" && internalProcesses.length > 0) || internalStatus === "FAILED") {
+    if (!reportId || (internalStatus === "COMPLETED" && internalProcesses.length > 0) || internalStatus === "FAILED" || internalStatus === "CANCELLED") {
       if (internalStatus === "COMPLETED" && internalProcesses.length > 0) return;
     }
 
@@ -79,6 +80,27 @@ export function ReportView({
 
     return () => clearInterval(interval);
   }, [reportId, internalStatus]);
+
+  const handleRegenerate = async () => {
+    if (!reportId || isRegenerating) return;
+    try {
+      setIsRegenerating(true);
+      const res = await fetch(`/api/report/${reportId}/regenerate`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.details || err.error || "Regeneration failed");
+      }
+      const data = await res.json();
+      if (data.session_id) {
+        router.push(`/report/${data.session_id}`);
+      }
+    } catch (error) {
+      console.error("Regenerate failed:", error);
+      alert(`Regeneration failed: ${error}`);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   if (isLoading || (internalStatus && internalStatus.startsWith("PROCESSING"))) {
     return <ProcessingView status={internalStatus} filename={filename} createdAt={createdAt} reportId={reportId} />;
@@ -115,24 +137,39 @@ export function ReportView({
         {/* Header Gradient Line */}
         <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-primary to-transparent opacity-50"></div>
 
-        {/* Back Button */}
-        {isPage ? (
-          <Link
-            href="/"
-            className="group flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors w-fit"
-          >
-            <IoArrowBackOutline size={20} />
-            <span className="text-sm font-medium">Back to Projects</span>
-          </Link>
-        ) : (
-          <button
-            onClick={onBack}
-            className="group flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors"
-          >
-            <IoArrowBackOutline size={20} />
-            <span className="text-sm font-medium">Back to Projects</span>
-          </button>
-        )}
+        {/* Back Button + Regenerate */}
+        <div className="flex items-center justify-between mb-8">
+          {isPage ? (
+            <Link
+              href="/"
+              className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-fit"
+            >
+              <IoArrowBackOutline size={20} />
+              <span className="text-sm font-medium">Back to Projects</span>
+            </Link>
+          ) : (
+            <button
+              onClick={onBack}
+              className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+            >
+              <IoArrowBackOutline size={20} />
+              <span className="text-sm font-medium">Back to Projects</span>
+            </button>
+          )}
+
+          {reportId && (internalStatus === "COMPLETED" || internalStatus === "FAILED" || internalStatus === "CANCELLED") && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="group flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <IoReload size={16} className={isRegenerating ? "animate-spin" : ""} />
+              <span className="text-sm font-medium">
+                {isRegenerating ? "Regenerating..." : "Regenerate Report"}
+              </span>
+            </button>
+          )}
+        </div>
 
         {/* Tabs */}
         <div className="flex space-x-6 mb-8 border-b border-slate-800">
