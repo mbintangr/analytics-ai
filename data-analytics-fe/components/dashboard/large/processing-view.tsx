@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { FaCheck } from "react-icons/fa";
-import { RiPsychotherapyLine } from "react-icons/ri";
 import { MdQueryStats } from "react-icons/md";
 import { TbFileDescription } from "react-icons/tb";
 import { IoClose } from "react-icons/io5";
@@ -107,9 +106,9 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
   };
 
   const getStepStatus = (stepName: string): StepStatus => {
+    // Current valid agents according to backend/database
     const order = [
       "data_preprocessing_agent",
-      "business_questions_agent",
       "eda_agent",
       "data_explainer_agent"
     ];
@@ -126,6 +125,15 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     const currentIndex = order.indexOf(currentAgent);
     const stepIndex = order.indexOf(stepName);
 
+    // If currentAgent is business_questions_agent, it's defunct but might still be emitted.
+    // We treat it as finished preprocessing but not yet eda.
+    if (currentAgent === "business_questions_agent") {
+      if (stepName === "data_preprocessing_agent") return "completed";
+      return "pending";
+    }
+
+    if (currentIndex === -1) return "pending";
+
     if (stepIndex < currentIndex) return "completed";
     if (stepIndex === currentIndex) return "processing";
     return "pending";
@@ -134,10 +142,12 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
   const getProgressWidth = () => {
     if (status === "COMPLETED") return "100%";
 
-    if (status.includes("data_preprocessing_agent")) return "12%";
-    if (status.includes("business_questions_agent")) return "38%";
-    if (status.includes("eda_agent")) return "64%";
-    if (status.includes("data_explainer_agent")) return "90%";
+    const currentAgent = status.replace("PROCESSING ", "").trim();
+
+    if (currentAgent === "data_preprocessing_agent" || status === "PROCESSING") return "15%";
+    if (currentAgent === "business_questions_agent") return "35%"; // Between nodes
+    if (currentAgent === "eda_agent") return "50%";
+    if (currentAgent === "data_explainer_agent") return "85%";
 
     return "0%";
   };
@@ -239,15 +249,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                   detail="Understanding, Assessing, and Cleaning"
                 />
 
-                {/* Node 2: Business Questions */}
-                <StatusNode
-                  title="Business Questions"
-                  status={getStepStatus("business_questions_agent")}
-                  icon={<RiPsychotherapyLine />}
-                  detail="Formulating Business Questions"
-                />
-
-                {/* Node 3: EDA */}
+                {/* Node 2: EDA */}
                 <StatusNode
                   title="Exploratory Analysis"
                   status={getStepStatus("eda_agent")}
@@ -255,7 +257,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                   detail="Performing Exploratory Data Analysis"
                 />
 
-                {/* Node 4: Explanation */}
+                {/* Node 3: Explanation */}
                 <StatusNode
                   title="Data Explanation"
                   status={getStepStatus("data_explainer_agent")}

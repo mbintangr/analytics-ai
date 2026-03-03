@@ -15,6 +15,10 @@ import seaborn as sns
 import ast
 
 
+
+'''
+LEGACY PANDAS DATA MANIPULATION FUNCTIONS (REPLACED BY DUCKDB SQL)
+-----------------------------------------------------------------
 def _cast_value(series: pd.Series, value, method: str):
     """Cast LLM-provided value to match column dtype."""
     if (
@@ -873,6 +877,12 @@ def convert_column_type(
         df[column] = df[column].astype(target_type, errors=errors)
 
     return df
+
+
+def _dummy():
+    pass
+'''
+
 
 
 def _optimize_plot_ticks(ax):

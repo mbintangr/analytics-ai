@@ -19,6 +19,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk.artifacts import InMemoryArtifactService
 from da_agent.dataTools import save_text_to_file
+from da_agent.duckdb_engine import DuckDBEngine
 from google.genai import types
 import litellm
 
@@ -179,8 +180,13 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
     session_service = InMemorySessionService()
     artifact_service = InMemoryArtifactService()
 
+    # Initialize DuckDB Engine and register the raw data
+    engine = DuckDBEngine()
+    engine.register_parquet("raw_data", raw_data_path)
+
     initial_state = {
         "output_dir": output_dir,
+        "duckdb_engine": engine,  # tools access via tool_context.state["duckdb_engine"]
         "data_state": {
             "raw_data": {
                 "description": "The initial data uploaded by the user.",
@@ -288,6 +294,8 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         except asyncio.CancelledError:
             pass
         log_file.close()
+        # Close DuckDB engine
+        engine.close()
 
     updated_session = await session_service.get_session(
         app_name=APP_NAME, user_id=USER_ID, session_id=session_id

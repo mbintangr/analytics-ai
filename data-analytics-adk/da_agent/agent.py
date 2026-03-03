@@ -6,45 +6,56 @@ from dotenv import load_dotenv
 import os
 import warnings
 import logging
-from .agentTools import (
-    exit_loop,
+# ── Old Pandas-based tool imports (replaced by DuckDB SQL tools) ──────────────
+# from .agentTools import (
+#     exit_loop,
+#     get_data_state_list,
+#     get_understanding_report,
+#     get_assessment_report,
+#     get_unique_values_tool,
+#     get_unique_values_count_tool,
+#     get_rows_by_condition_tool,
+#     get_null_values_rows_tool,
+#     merge_data_tool,
+#     remove_null_values_tool,
+#     fill_null_values_tool,
+#     remove_duplicate_values_tool,
+#     replace_column_value_tool,
+#     replace_column_value_regex_tool,
+#     change_data_type_tool,
+#     create_column_from_expression_tool,
+#     drop_columns_tool,
+#     rename_columns_tool,
+#     clean_text_column_tool,
+#     convert_to_datetime_tool,
+#     impute_missing_values_tool,
+#     copy_data_state_tool,
+#     save_data_state_tool,
+#     group_and_aggregate_tool,
+#     create_pivot_table_tool,
+#     get_top_n_rows_tool,
+#     get_group_stats_tool,
+#     get_column_stats_tool,
+#     get_aggregation_scalar_tool,
+#     get_data_tool,
+#     remove_outliers_tool,
+#     clip_values_tool,
+#     remove_rows_by_condition_tool,
+#     filter_rows_by_condition_tool,
+#     split_column_tool,
+#     convert_column_type_tool,
+#     plot_chart_tool,
+#     list_output_files_tool,
+# )
+
+# ── New DuckDB SQL-based tool imports ─────────────────────────────────────────
+from .sqlTools import (
+    run_sql_tool,
+    plot_tool,
     get_data_state_list,
-    get_understanding_report,
-    get_assessment_report,
-    get_unique_values_tool,
-    get_unique_values_count_tool,
-    get_rows_by_condition_tool,
-    get_null_values_rows_tool,
-    merge_data_tool,
-    remove_null_values_tool,
-    fill_null_values_tool,
-    remove_duplicate_values_tool,
-    replace_column_value_tool,
-    replace_column_value_regex_tool,
-    change_data_type_tool,
-    create_column_from_expression_tool,
-    drop_columns_tool,
-    rename_columns_tool,
-    clean_text_column_tool,
-    convert_to_datetime_tool,
-    impute_missing_values_tool,
-    copy_data_state_tool,
-    save_data_state_tool,
-    group_and_aggregate_tool,
-    create_pivot_table_tool,
-    get_top_n_rows_tool,
-    get_group_stats_tool,
-    get_column_stats_tool,
-    get_aggregation_scalar_tool,
-    get_data_tool,
-    remove_outliers_tool,
-    clip_values_tool,
-    remove_rows_by_condition_tool,
-    filter_rows_by_condition_tool,
-    split_column_tool,
-    convert_column_type_tool,
-    plot_chart_tool,
+    save_report_tool,
     list_output_files_tool,
+    exit_loop,
 )
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -124,7 +135,7 @@ def create_root_agent(model_name: str = DEFAULT_MODEL):
         name="data_understanding_agent",
         description="A data understanding agent.",
         instruction="""
-You are a Data Understanding Agent.
+You are a Data Understanding Agent. You use SQL to inspect datasets via DuckDB.
 
 BUSINESS CONTEXT:
 {business_questions}
@@ -135,9 +146,12 @@ This agent establishes the ONLY authoritative reference for column names and dat
 Focus your understanding on columns that are relevant to answering the business questions above.
 
 MANDATORY EXECUTION RULES:
-1. You MUST call get_understanding_report(key="raw_data") as your FIRST and ONLY tool call.
-2. You MUST NOT call any other tool.
-3. You MUST NOT infer, hypothesize, or suggest anything.
+1. Run these SQL queries IN ORDER using run_sql_tool against the 'raw_data' table:
+   a. run_sql_tool(sql="SELECT COUNT(*) AS row_count FROM raw_data")
+   b. run_sql_tool(sql="DESCRIBE raw_data")
+   c. run_sql_tool(sql="SELECT * FROM raw_data USING SAMPLE 5")
+   d. run_sql_tool(sql="SUMMARIZE raw_data")
+2. You MUST NOT infer, hypothesize, or suggest anything.
 
 OUTPUT REQUIREMENTS:
 Produce a Markdown report with EXACTLY these sections:
@@ -164,7 +178,7 @@ Output ONLY the Markdown report.
     """,
         output_key="data_understanding",
         tools=[
-            get_understanding_report,
+            run_sql_tool,
         ],
         generate_content_config=types.GenerateContentConfig(
             http_options=types.HttpOptions(
@@ -182,7 +196,7 @@ Output ONLY the Markdown report.
         name="data_assessing_agent",
         description="A data assessing agent.",
         instruction="""
-You are a Data Quality Assessment Agent.
+You are a Data Quality Assessment Agent. You use SQL to inspect datasets via DuckDB.
 
 BUSINESS CONTEXT:
 {business_questions}
@@ -193,12 +207,18 @@ You MUST NOT modify data.
 Prioritize quality issues that would impact answering the business questions above.
 
 EXECUTION STEPS:
-1. Call get_data_state_list().
-2. Select the MOST PROCESSED dataset:
+1. Call get_data_state_list() to see available tables.
+2. Select the MOST PROCESSED table:
    - Prefer keys starting with 'cleaned_' or 'processed_'
    - Otherwise use 'raw_data'
-3. Call get_assessment_report(key).
-4. Use inspection tools ONLY if the assessment reveals ambiguity.
+3. Run these SQL assessment queries using run_sql_tool:
+   a. Row count: SELECT COUNT(*) FROM table_name
+   b. Column info: DESCRIBE table_name
+   c. Summary statistics: SUMMARIZE table_name
+   d. Null counts per column: SELECT COUNT(*) - COUNT(col1) AS col1_nulls, COUNT(*) - COUNT(col2) AS col2_nulls, ... FROM table_name
+   e. Duplicate check: SELECT COUNT(*) - COUNT(DISTINCT *) AS duplicate_count FROM table_name (if feasible)
+   f. Sample rows: SELECT * FROM table_name USING SAMPLE 5
+   g. For suspicious columns, inspect unique values: SELECT DISTINCT col, COUNT(*) FROM table_name GROUP BY col ORDER BY 2 DESC LIMIT 20
 
 OUTPUT FORMAT (Markdown ONLY):
 
@@ -210,17 +230,17 @@ OUTPUT FORMAT (Markdown ONLY):
 Numbered list. If the data appears already clean (e.g., during a post-cleaning validation run), omit this section entirely or state "No further cleaning required".
 Each item MUST:
 - Reference a specific column
-- Map DIRECTLY to a tool used by data_cleaning_agent
+- Describe the SQL transformation to apply (the data_cleaning_agent will use run_sql_tool)
 - Be feasible and deterministic
 - Focus on columns relevant to answering the business questions
-- ONLY recommend actions on EXISTING columns — do NOT suggest adding entirely new columns that cannot be derived from existing data
+- ONLY recommend actions on EXISTING columns
 
 ## Data Limitations (if any)
-If a business question requires data that does NOT exist in the dataset (e.g., no date column for monthly trends, no size column for size analysis), list these as limitations here. Do NOT include them as cleaning recommendations.
+If a business question requires data that does NOT exist in the dataset, list these as limitations here.
 
 STRICT CONSTRAINTS:
 - Do NOT clean data
-- Do NOT call cleaning tools
+- Do NOT modify any tables
 - Do NOT suggest unverifiable actions
 - Do NOT restate tool output verbatim
 - No extra text outside the report
@@ -228,11 +248,7 @@ STRICT CONSTRAINTS:
         output_key="data_assessment",
         tools=[
             get_data_state_list,
-            get_assessment_report,
-            get_unique_values_tool,
-            get_unique_values_count_tool,
-            get_rows_by_condition_tool,
-            get_null_values_rows_tool,
+            run_sql_tool,
         ],
         generate_content_config=types.GenerateContentConfig(
             http_options=types.HttpOptions(
@@ -250,63 +266,73 @@ STRICT CONSTRAINTS:
         name="data_cleaning_agent",
         description="A data cleaning agent.",
         instruction="""
-You are a Data Cleaning Execution Agent.
+You are a Data Cleaning Execution Agent. You use SQL via run_sql_tool to clean data.
 
 BUSINESS CONTEXT:
 {business_questions}
 
 OBJECTIVE:
-Execute the Cleaning Recommendations exactly using tools.
+Execute the Cleaning Recommendations using SQL queries via run_sql_tool.
 You MUST NOT assess, verify, or interpret results.
 Focus cleaning efforts on columns relevant to answering the business questions above.
 
 MANDATORY PROCEDURE:
-1. Identify the latest usable data key using get_data_state_list().
-2. FIRST ACTION:
-   Call copy_data_state_tool(source_key, target_key='cleaned_data').
-   ALL operations MUST use 'cleaned_data'.
-3. Execute cleaning steps ONE BY ONE.
-4. After every major transformation, call save_data_state_tool(key='cleaned_data').
+1. Call get_data_state_list() to find the latest usable dataset.
+2. FIRST ACTION: Create a copy of the source data as 'cleaned_data':
+   run_sql_tool(sql="SELECT * FROM raw_data", save_as="cleaned_data")
+3. Execute cleaning steps ONE BY ONE using run_sql_tool with save_as="cleaned_data".
+   Each step OVERWRITES the 'cleaned_data' table with the cleaned version.
+
+COMMON SQL CLEANING PATTERNS (DuckDB syntax):
+- Remove nulls:
+  run_sql_tool(sql="SELECT * FROM cleaned_data WHERE column_name IS NOT NULL", save_as="cleaned_data")
+- Fill nulls with value:
+  run_sql_tool(sql="SELECT *, COALESCE(column_name, 'default') AS column_name FROM cleaned_data", save_as="cleaned_data")
+  Note: Use SELECT * EXCLUDE (column_name), COALESCE(...) to avoid duplicate columns
+- Fill nulls with mean:
+  run_sql_tool(sql="SELECT * EXCLUDE (col), COALESCE(col, (SELECT AVG(col) FROM cleaned_data)) AS col FROM cleaned_data", save_as="cleaned_data")
+- Remove duplicates:
+  run_sql_tool(sql="SELECT DISTINCT * FROM cleaned_data", save_as="cleaned_data")
+- Replace values:
+  run_sql_tool(sql="SELECT * EXCLUDE (col), CASE WHEN col = 'old' THEN 'new' ELSE col END AS col FROM cleaned_data", save_as="cleaned_data")
+- Regex replace:
+  run_sql_tool(sql="SELECT * EXCLUDE (col), regexp_replace(col, '[^0-9.]', '', 'g') AS col FROM cleaned_data", save_as="cleaned_data")
+- Cast type:
+  run_sql_tool(sql="SELECT * EXCLUDE (col), TRY_CAST(col AS DOUBLE) AS col FROM cleaned_data", save_as="cleaned_data")
+- Drop columns:
+  run_sql_tool(sql="SELECT * EXCLUDE (col1, col2) FROM cleaned_data", save_as="cleaned_data")
+- Rename column:
+  run_sql_tool(sql="SELECT * EXCLUDE (old_name), old_name AS new_name FROM cleaned_data", save_as="cleaned_data")
+- Trim/lowercase text:
+  run_sql_tool(sql="SELECT * EXCLUDE (col), trim(lower(col)) AS col FROM cleaned_data", save_as="cleaned_data")
+- Remove outliers (IQR):
+  run_sql_tool(sql="SELECT * FROM cleaned_data WHERE col BETWEEN (SELECT percentile_cont(0.25) WITHIN GROUP (ORDER BY col) FROM cleaned_data) - 1.5 * (SELECT percentile_cont(0.75) WITHIN GROUP (ORDER BY col) FROM cleaned_data - percentile_cont(0.25) WITHIN GROUP (ORDER BY col) FROM cleaned_data) AND ...", save_as="cleaned_data")
+- Filter rows:
+  run_sql_tool(sql="SELECT * FROM cleaned_data WHERE condition", save_as="cleaned_data")
+- Split column (by delimiter):
+  run_sql_tool(sql="SELECT * EXCLUDE (col), string_split(col, '|')[1] AS col_part1, string_split(col, '|')[2] AS col_part2 FROM cleaned_data", save_as="cleaned_data")
+- Create derived column:
+  run_sql_tool(sql="SELECT *, col1 * col2 AS derived_col FROM cleaned_data", save_as="cleaned_data")
 
 OUTPUT REQUIREMENTS:
 - Output a concise Markdown execution log listing:
   - Step number
-  - Tool used
+  - SQL query used
   - Column(s) affected
 
 STRICT CONSTRAINTS:
-- NEVER call get_assessment_report
 - NEVER judge cleanliness
 - NEVER invent columns
-- NEVER modify the source dataset
-- NEVER create columns with constant/placeholder values (e.g., setting all rows to the same value like '2023-01' or 'Medium')
-- Before using split_column_tool, verify the ACTUAL delimiter used in the data (e.g., inspect sample values). Common delimiters: '|', ',', '>', '/'
-- If a type conversion fails, replace unconvertible values with empty string or NaN FIRST using replace_column_value_regex_tool, then retry the conversion
-- If a cleaning recommendation requires data that doesn't exist in the dataset, SKIP it and note it in the execution log
+- NEVER modify the source dataset — always write to 'cleaned_data'
+- NEVER create columns with constant/placeholder values
+- Before splitting, inspect sample values first with: run_sql_tool(sql="SELECT DISTINCT col FROM cleaned_data LIMIT 10")
+- If a type conversion fails, clean the values first with regexp_replace, then retry
+- If a cleaning recommendation requires data that doesn't exist, SKIP it
 - Output ONLY the execution log
     """,
         tools=[
             get_data_state_list,
-            copy_data_state_tool,
-            merge_data_tool,
-            remove_null_values_tool,
-            fill_null_values_tool,
-            remove_duplicate_values_tool,
-            replace_column_value_tool,
-            replace_column_value_regex_tool,
-            change_data_type_tool,
-            create_column_from_expression_tool,
-            drop_columns_tool,
-            rename_columns_tool,
-            clean_text_column_tool,
-            convert_to_datetime_tool,
-            impute_missing_values_tool,
-            save_data_state_tool,
-            remove_outliers_tool,
-            clip_values_tool,
-            remove_rows_by_condition_tool,
-            split_column_tool,
-            convert_column_type_tool,
+            run_sql_tool,
         ],
         output_key="data_cleaning",
         generate_content_config=types.GenerateContentConfig(
@@ -400,37 +426,48 @@ STRICT CONSTRAINTS:
         name="data_preparation_agent",
         description="A data preparation agent.",
         instruction="""
-You are a Data Preparation Agent.
+You are a Data Preparation Agent. You use SQL via run_sql_tool to prepare data.
 
 BUSINESS CONTEXT:
 {business_questions}
 
 OBJECTIVE:
-Prepare question-specific datasets for visualization and analysis.
+Prepare question-specific datasets for visualization and analysis using SQL.
 All preparation should be focused on answering the business questions above.
 
 MANDATORY RULES:
 1. Call get_data_state_list().
 2. Identify 'cleaned_data'.
-3. Call get_understanding_report(key='cleaned_data') to confirm column names.
+3. Inspect schema: run_sql_tool(sql="DESCRIBE cleaned_data")
 4. For EACH business question, MAP it to available columns:
    - If the question references a column that doesn't exist, identify the CLOSEST PROXY column
-     (e.g., 'revenue' → 'discounted_price' or 'actual_price', 'sales' → 'rating_count', 'month' → derive from a date column if available)
-   - If no reasonable proxy exists and the question is COMPLETELY unanswerable, SKIP it and document why in the output
-   - Before using a column for grouping or trend analysis, verify it has MORE THAN 1 unique value. If a column is constant (e.g., all values are '2023-01'), do NOT use it — SKIP the question and explain why
-   a. Create a NEW dataset via copy_data_state_tool
-   b. Apply ONLY the transformations required for that question
-   c. NEVER modify 'cleaned_data'
+   - If no reasonable proxy exists, SKIP it and document why
+   - Verify grouping columns have more than 1 unique value:
+     run_sql_tool(sql="SELECT COUNT(DISTINCT col) FROM cleaned_data")
+
+5. For EACH answerable question, create a prepared dataset using run_sql_tool with save_as:
+   Example:
+   run_sql_tool(
+     sql="SELECT category, AVG(price) as avg_price, COUNT(*) as count FROM cleaned_data GROUP BY category ORDER BY avg_price DESC",
+     save_as="prep_q1_category_prices"
+   )
+
+COMMON PREPARATION PATTERNS:
+- Aggregation: SELECT group_col, AGG(value_col) FROM cleaned_data GROUP BY group_col
+- Pivot: PIVOT cleaned_data ON category USING SUM(sales)
+- Derived column: SELECT *, date_part('month', date_col) AS month FROM cleaned_data
+- Filtering: SELECT * FROM cleaned_data WHERE condition
+- Top N: SELECT * FROM cleaned_data ORDER BY col DESC LIMIT N
 
 CRITICAL FAILURE CONDITIONS:
 - Guessing column names
 - Reusing the same prep key for multiple questions
-- Describing transformations without executing tools
+- Describing transformations without executing SQL
 - Giving up on a question without checking for proxy columns first
 
 OUTPUT:
 Bullet list of:
-- Dataset key
+- Dataset key (the save_as name)
 - One-line description (include any proxy column mapping used)
 - If a question was skipped: reason why no proxy exists
 
@@ -438,15 +475,7 @@ Output ONLY this list.
     """,
         tools=[
             get_data_state_list,
-            get_understanding_report,
-            copy_data_state_tool,
-            get_top_n_rows_tool,
-            group_and_aggregate_tool,
-            create_pivot_table_tool,
-            create_column_from_expression_tool,
-            filter_rows_by_condition_tool,
-            convert_to_datetime_tool,
-            save_data_state_tool,
+            run_sql_tool,
         ],
         output_key="data_preparation",
         generate_content_config=types.GenerateContentConfig(
@@ -465,7 +494,7 @@ Output ONLY this list.
         name="insights_gatherer_agent",
         description="An insights gatherer agent.",
         instruction="""
-You are an Insights Gatherer Agent. Your task is to extract insights from the prepared data. If in your task you need to create or modify a dataset, it is not your task. Please tell the orchestrator to do it.
+You are an Insights Gatherer Agent. You use SQL (run_sql_tool) for analysis and plot_tool for visualizations.
 
 BUSINESS CONTEXT:
 {business_questions}
@@ -475,20 +504,26 @@ Extract quantitative insights supported by plots.
 Ensure all insights directly answer the business questions above.
 
 INPUT:
-- Prepared Data Keys
+- Prepared Data Keys (from data_preparation_agent)
 
 EXECUTION STEPS:
 1. Call get_data_state_list().
 2. For EACH business question:
    a. Select the correct prepared dataset
-   b. Generate statistics using analysis tools
-   c. Ensure at least ONE visualization is produced
-3. Record visualization filenames EXACTLY as returned.
+   b. Generate statistics using run_sql_tool:
+      - run_sql_tool(sql="SELECT col, COUNT(*), AVG(val) FROM prep_q1 GROUP BY col ORDER BY 2 DESC LIMIT 10")
+      - run_sql_tool(sql="SELECT MIN(col), MAX(col), AVG(col), STDDEV(col) FROM prep_q1")
+   c. Create at least ONE visualization using plot_tool:
+      - plot_tool(sql="SELECT category, SUM(revenue) as total FROM prep_q1 GROUP BY category ORDER BY total DESC LIMIT 15", plot_type="bar", x="category", y="total", title="Revenue by Category")
+      - plot_tool(sql="SELECT date_col, SUM(value) as daily_total FROM prep_q1 GROUP BY date_col ORDER BY date_col", plot_type="line", x="date_col", y="daily_total", title="Daily Trend")
+      - plot_tool(sql="SELECT x_col, y_col FROM prep_q1 USING SAMPLE 500", plot_type="scatter", x="x_col", y="y_col", title="Correlation")
+      - plot_tool(sql="SELECT col FROM prep_q1", plot_type="histogram", x="col", title="Distribution of col")
+3. Record visualization filenames EXACTLY as returned by plot_tool.
 
 ADAPTATION RULES:
-- If a prepared dataset has no specific transformations, analyze its available numeric columns to provide the CLOSEST possible answer
+- If a prepared dataset has no specific transformations, analyze its available numeric columns
 - If a question is partially answerable, provide what you CAN answer and note what's missing
-- You MUST ALWAYS produce at least one visualization per question, even if using proxy columns
+- You MUST ALWAYS produce at least one visualization per question
 - NEVER output 'cannot be computed' — instead, reframe the question using available data
 
 OUTPUT FORMAT (REQUIRED FOR EACH INSIGHT):
@@ -504,12 +539,8 @@ STRICT CONSTRAINTS:
     """,
         tools=[
             get_data_state_list,
-            get_top_n_rows_tool,
-            get_group_stats_tool,
-            get_column_stats_tool,
-            get_aggregation_scalar_tool,
-            get_data_tool,
-            plot_chart_tool,
+            run_sql_tool,
+            plot_tool,
         ],
         output_key="insights",
         generate_content_config=types.GenerateContentConfig(

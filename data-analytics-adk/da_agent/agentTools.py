@@ -1,3 +1,7 @@
+'''
+LEGACY PANDAS-BASED TOOLS (REPLACED BY DUCKDB SQL TOOLS)
+The code below is preserved for reference only.
+---------------------------------------------------------
 import pandas as pd
 import numpy as np
 from .dataTools import (
@@ -2367,3 +2371,5 @@ def list_output_files_tool(tool_context: ToolContext) -> list[str]:
         return files
     except Exception as e:
         return [f"Error executing tool 'list_output_files_tool': {str(e)}"]
+
+'''
