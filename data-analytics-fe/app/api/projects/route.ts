@@ -17,6 +17,26 @@ export async function GET(request: Request) {
   const search = searchParams.get("search");
 
   try {
+    // 1. Calculate global stats (ignoring search filter)
+    const allSessions = await prisma.analysisSession.findMany({
+      where: { userId: session.user.id },
+    });
+
+    const totalSessions = allSessions.length;
+    const processingCount = allSessions.filter((s) => s.status === "PROCESSING").length;
+    const failedCount = allSessions.filter((s) => s.status === "FAILED").length;
+    const completedCount = allSessions.filter((s) => s.status === "COMPLETED").length;
+    const finishedCount = completedCount + failedCount;
+    const successRate = finishedCount > 0 ? Math.round((completedCount / finishedCount) * 100) : 0;
+
+    const stats = {
+      activeProjects: totalSessions,
+      processing: processingCount,
+      failedJobs: failedCount,
+      successRate: successRate,
+    };
+
+    // 2. Fetch projects (with optional search filter)
     const where: any = {
       userId: session.user.id,
     };
@@ -28,12 +48,10 @@ export async function GET(request: Request) {
       ];
     }
 
-    const analysisSessions = await prisma.analysisSession.findMany({
+    const analysisSessions = search ? await prisma.analysisSession.findMany({
       where,
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+      orderBy: { createdAt: "desc" },
+    }) : allSessions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     const projects: Project[] = analysisSessions.map((session) => {
       let status: Project["status"] = "Processing";
@@ -62,7 +80,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ projects });
+    return NextResponse.json({ stats, projects });
   } catch (error) {
     console.error("Projects API Error:", error);
     return NextResponse.json(

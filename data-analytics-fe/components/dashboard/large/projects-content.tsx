@@ -5,16 +5,29 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProjectGrid, Project } from "./project-grid";
 import { ProjectGridSkeleton } from "./project-grid-skeleton";
 import { RenameModal } from "./rename-modal";
+import { StatsRow } from "./stats-row";
 
-export function ProjectsContent() {
+interface DashboardStats {
+  activeProjects: number;
+  processing: number;
+  failedJobs: number;
+  successRate: number;
+}
+
+interface ProjectsContentProps {
+  initialStats?: DashboardStats;
+}
+
+export function ProjectsContent({ initialStats }: ProjectsContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(initialStats || null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoading(true);
+    const fetchProjects = async (isBackground = false) => {
+      if (!isBackground) setIsLoading(true);
       try {
         const query = searchParams.get("search");
         const url = query ? `/api/projects?search=${encodeURIComponent(query)}` : "/api/projects";
@@ -22,15 +35,21 @@ export function ProjectsContent() {
         if (res.ok) {
           const data = await res.json();
           setProjects(data.projects);
+          if (data.stats) {
+            setStats(data.stats);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       } finally {
-        setIsLoading(false);
+        if (!isBackground) setIsLoading(false);
       }
     };
 
     fetchProjects();
+
+    const intervalId = setInterval(() => fetchProjects(true), 2000);
+    return () => clearInterval(intervalId);
   }, [searchParams]);
 
   const handleProjectClick = (project: Project) => {
@@ -101,7 +120,7 @@ export function ProjectsContent() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && projects.length === 0) {
     return (
       <div className="flex flex-col gap-6">
         <div className="h-8 w-48 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
@@ -112,7 +131,10 @@ export function ProjectsContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-2xl font-bold text-white">All Projects</h2>
+      {stats && <StatsRow {...stats} />}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-white">All Projects</h2>
+      </div>
       <ProjectGrid
         projects={projects}
         onProjectClick={handleProjectClick}
