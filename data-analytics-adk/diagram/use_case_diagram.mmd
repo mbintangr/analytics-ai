@@ -1,0 +1,84 @@
+graph TB
+
+%% ============================================================
+%% DATA ANALYTICS AI PLATFORM — FRONTEND USE CASE DIAGRAM
+%% ============================================================
+
+%% ─── ACTORS ─────────────────────────────────────────────────
+    GUEST(["👤 Guest"])
+    USER(["👤 Authenticated User"])
+
+%% ─── SYSTEM BOUNDARY: APPLICATION ───────────────────────────
+    subgraph APP ["📱 Data Analytics AI Application"]
+        direction TB
+
+        subgraph AUTH ["🔐 Authentication"]
+            UC01["UC-01\nSign Up"]
+            UC02["UC-02\nSign In"]
+            UC03["UC-03\nSign Out"]
+        end
+
+        subgraph DASH ["🏠 Dashboard"]
+            UC04["UC-04\nView Home Dashboard"]
+            UC05["UC-05\nView Projects List"]
+        end
+
+        subgraph UPLOAD ["📤 Data Upload & Analysis"]
+            UC06["UC-06\nOpen Upload Modal"]
+            UC07["UC-07\nSelect Dataset File (CSV)"]
+            UC08["UC-08\nPreview Data Sample"]
+            UC09["UC-09\nEnter Business Questions"]
+            UC10["UC-10\nSelect AI Model"]
+            UC11["UC-11\nGenerate Insights\n(Submit for Analysis)"]
+            UC12["UC-12\nTrack Processing Progress\n(live status timeline)"]
+            UC13["UC-13\nCancel Running Analysis"]
+        end
+
+        subgraph REPORT ["📄 Report & Results"]
+            UC14["UC-14\nView Analysis Report"]
+            UC15["UC-15\nNavigate Table of Contents"]
+            UC16["UC-16\nRegenerate Report"]
+        end
+
+        subgraph PROJECT ["📁 Project Management"]
+            UC17["UC-17\nDelete Project"]
+        end
+    end
+
+%% ─── GUEST USE CASES ─────────────────────────────────────────
+    GUEST --> UC01
+    GUEST --> UC02
+
+%% ─── AUTHENTICATED USER USE CASES ───────────────────────────
+    USER --> UC03
+    USER --> UC04
+    USER --> UC05
+    USER --> UC06
+    USER --> UC13
+    USER --> UC14
+    USER --> UC16
+    USER --> UC17
+
+%% ─── INCLUDE RELATIONSHIPS (mandatory steps) ─────────────────
+    UC06 -->|"«include»"| UC07
+    UC07 -->|"«include»"| UC08
+    UC07 -->|"«include»"| UC09
+    UC07 -->|"«include»"| UC10
+    UC09 -->|"«include»"| UC11
+    UC11 -->|"«include»"| UC12
+
+%% ─── EXTEND RELATIONSHIPS (optional steps) ───────────────────
+    UC12 -.->|"«extend»\n[if processing]"| UC13
+    UC14 -.->|"«extend»"| UC15
+
+%% ─── NAVIGATION FLOW ─────────────────────────────────────────
+    UC05 -->|"«include»"| UC06
+    UC14 -->|"«include»"| UC16
+
+%% ─── STYLES ──────────────────────────────────────────────────
+    classDef actor fill:#1e3a5f,stroke:#4a90d9,stroke-width:2px,color:#e2e8f0,font-weight:bold
+    classDef usecase fill:#0f2340,stroke:#3b82f6,stroke-width:1.5px,color:#bfdbfe
+    classDef subgraphStyle fill:#060e1f,stroke:#2d4a7a,stroke-width:1px
+
+    class GUEST,USER actor
+    class UC01,UC02,UC03,UC04,UC05,UC06,UC07,UC08,UC09,UC10,UC11,UC12,UC13,UC14,UC15,UC16,UC17 usecase
