@@ -227,7 +227,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                 </div>
 
 
-                <ProcessLogsTable logs={logs} className="flex-1 p-0" />
+                <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} />
 
               </div>
             ) : (

@@ -18,9 +18,10 @@ interface ProcessLogsTableProps {
   logs: ProcessLog[];
   className?: string;
   isLoading?: boolean;
+  autoScroll?: boolean;
 }
 
-export function ProcessLogsTable({ logs, className, isLoading }: ProcessLogsTableProps) {
+export function ProcessLogsTable({ logs, className, isLoading, autoScroll = false }: ProcessLogsTableProps) {
   const scrollRef = useRef<HTMLTableRowElement>(null);
   const [selectedLog, setSelectedLog] = useState<ProcessLog | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -30,10 +31,10 @@ export function ProcessLogsTable({ logs, className, isLoading }: ProcessLogsTabl
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (autoScroll && scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [logs.length]);
+  }, [logs.length, autoScroll]);
 
   return (
     <>

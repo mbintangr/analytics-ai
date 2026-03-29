@@ -132,9 +132,6 @@ export function ProjectsContent({ initialStats }: ProjectsContentProps) {
   return (
     <div className="flex flex-col gap-6">
       {stats && <StatsRow {...stats} />}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">All Projects</h2>
-      </div>
       <ProjectGrid
         projects={projects}
         onProjectClick={handleProjectClick}

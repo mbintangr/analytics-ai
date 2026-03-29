@@ -161,7 +161,7 @@ export function ReportView({
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className="group flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="hover:cursor-pointer group flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IoReload size={16} className={isRegenerating ? "animate-spin" : ""} />
               <span className="text-sm font-medium">
@@ -175,7 +175,7 @@ export function ReportView({
         <div className="flex space-x-6 mb-8 border-b border-slate-800">
           <button
             onClick={() => setActiveTab('report')}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'report'
+            className={`hover:cursor-pointer pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'report'
               ? 'border-primary text-primary'
               : 'border-transparent text-slate-400 hover:text-white'
               }`}
@@ -184,7 +184,7 @@ export function ReportView({
           </button>
           <button
             onClick={() => setActiveTab('logs')}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'logs'
+            className={`hover:cursor-pointer pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'logs'
               ? 'border-primary text-primary'
               : 'border-transparent text-slate-400 hover:text-white'
               }`}

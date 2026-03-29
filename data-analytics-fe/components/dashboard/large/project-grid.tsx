@@ -34,7 +34,7 @@ export function ProjectGrid({ projects, onProjectClick, onDelete, onRename }: Pr
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-white">Recent Projects</h3>
+        <h2 className="text-2xl font-bold text-white">All Projects</h2>
         <div className="flex gap-2 bg-[#1e293b] p-1 rounded-xl border border-[#314368]">
           <button
             onClick={() => setViewMode("grid")}

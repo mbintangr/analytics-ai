@@ -241,7 +241,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
             <div className="mt-6">
               <h3 className="text-lg font-bold leading-tight tracking-tight text-white mb-3">
                 Business Questions
-                <span className="text-sm font-normal text-[#90a4cb] ml-2">(Optional)</span>
               </h3>
               <p className="text-sm text-[#90a4cb] mb-3">
                 What specific questions do you want answered from your data? This helps the AI focus its analysis.

@@ -14,6 +14,7 @@ interface ProjectCardProps {
   type: "bar" | "processing" | "error" | "wave" | "donut" | "log";
   onDelete?: () => void;
   onRename?: () => void;
+  onClick?: () => void;
 }
 
 export function ProjectCard({
@@ -24,6 +25,7 @@ export function ProjectCard({
   type,
   onDelete,
   onRename,
+  onClick,
 }: ProjectCardProps) {
   const getVisual = () => {
     switch (type) {
@@ -145,12 +147,13 @@ export function ProjectCard({
 
   return (
     <div
-      className={`group flex flex-col bg-[#1e293b] rounded-2xl border border-[#314368] transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 overflow-hidden cursor-pointer ${getBorderClass()}`}
+      onClick={onClick}
+      className={`group flex flex-col bg-[#1e293b] rounded-2xl border border-[#314368] transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 overflow-hidden ${onClick ? 'cursor-pointer' : ''} ${getBorderClass()}`}
     >
       {/* Thumbnail Area */}
       <div className={`h-40 w-full relative p-4 flex items-center justify-center overflow-hidden ${getBgClass()}`}>
         {getVisual()}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
           <Dropdown
             trigger={
               <div className="p-1 rounded-full hover:bg-black/20 text-slate-600 hover:text-white transition-colors">
