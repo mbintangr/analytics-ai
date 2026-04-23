@@ -1,0 +1,19 @@
+graph LR
+    %% Nodes
+    Agent["🧠 Agent (LLM)"]
+    Tools["🛠️ Tool Execution"]
+    Meta["📋 Metadata State<br/>(ToolContext)"]
+    Data["💾 Data Engine<br/>(DuckDB & Disk)"]
+
+    %% Flow
+    Agent -- "1. Calls Tool" --> Tools
+    Tools -- "2. Reads/Updates" --> Meta
+    Tools -- "3. Processes/Saves" --> Data
+    Data -- "4. Data Result" --> Tools
+    Tools -- "5. Returns Summary/Metadata" --> Agent
+
+    %% Styling
+    style Agent fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px
+    style Tools fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style Meta fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style Data fill:#fce4ec,stroke:#e91e63,stroke-width:2px
