@@ -159,7 +159,54 @@ async def delete_project(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/dataset/{session_id}")
+async def get_dataset_preview(session_id: str, page: int = 1, pageSize: int = 50):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'SELECT "datasetPath" FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+                
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+                
+                dataset_path = result[0]
+                if not dataset_path:
+                    raise HTTPException(status_code=404, detail="Dataset not found")
+                
+                dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+                raw_data_path = os.path.join("outputs", dataset_name, "raw_data.parquet")
 
+                target_path = raw_data_path if os.path.exists(raw_data_path) else dataset_path
+
+                import duckdb
+                safe_path = target_path.replace("\\", "/")
+                
+                # Count total rows directly via duckdb
+                count_res = duckdb.execute(f"SELECT count(*) FROM '{safe_path}'").fetchone()
+                total_rows = count_res[0] if count_res else 0
+                
+                # Fetch paginated data using DuckDBEngine to get sanitized JSON response
+                from da_agent.duckdb_engine import DuckDBEngine
+                engine = DuckDBEngine()
+                engine.register_parquet("raw_data_preview", target_path)
+                
+                offset = (page - 1) * pageSize
+                res = engine.execute_query(f'SELECT * FROM "raw_data_preview" LIMIT {pageSize} OFFSET {offset}', max_rows=pageSize)
+                engine.close()
+
+                return {
+                    "columns": res["columns"],
+                    "rows": res["rows"],
+                    "totalCount": total_rows,
+                    "page": page,
+                    "pageSize": pageSize
+                }
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()

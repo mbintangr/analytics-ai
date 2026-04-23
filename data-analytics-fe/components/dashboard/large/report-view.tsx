@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProcessingView } from "./processing-view";
 import { ProcessLogsTable, ProcessLog } from "./process-logs-table";
+import { DatasetTable } from "./dataset-table";
 
 interface ReportViewProps {
   reportContent: string | null;
@@ -38,7 +39,7 @@ export function ReportView({
   const [internalReportContent, setInternalReportContent] = React.useState(reportContent);
   const [internalImageBaseUrl, setInternalImageBaseUrl] = React.useState(imageBaseUrl);
   const [internalProcesses, setInternalProcesses] = React.useState<ProcessLog[]>([]);
-  const [activeTab, setActiveTab] = React.useState<'report' | 'logs'>('report');
+  const [activeTab, setActiveTab] = React.useState<'report' | 'logs' | 'dataset'>('report');
   const [isRegenerating, setIsRegenerating] = React.useState(false);
 
   // Sync props to state if they change (optional, but good for initial load or re-validation)
@@ -191,6 +192,15 @@ export function ReportView({
           >
             System Logs
           </button>
+          <button
+            onClick={() => setActiveTab('dataset')}
+            className={`hover:cursor-pointer pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'dataset'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-slate-400 hover:text-white'
+              }`}
+          >
+            Dataset Data
+          </button>
         </div>
 
         {/* Content */}
@@ -240,10 +250,16 @@ export function ReportView({
               {internalReportContent}
             </ReactMarkdown>
           </div>
-        ) : (
+        ) : activeTab === 'logs' ? (
           /* System Logs Content */
           <ProcessLogsTable logs={internalProcesses} className="overflow-x-auto" />
-        )}
+        ) : activeTab === 'dataset' && reportId ? (
+          <DatasetTable reportId={reportId} />
+        ) : activeTab === 'dataset' && !reportId ? (
+          <div className="flex justify-center items-center h-full min-h-[500px] text-slate-400">
+            <p>No report ID available for dataset preview.</p>
+          </div>
+        ) : null}
 
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-slate-800 text-center">
