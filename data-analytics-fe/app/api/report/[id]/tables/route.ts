@@ -1,9 +1,9 @@
 import { auth } from "@/auth";
 import { headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 export async function GET(
-  request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth.api.getSession({
@@ -15,10 +15,6 @@ export async function GET(
   }
 
   const { id } = await params;
-  const searchParams = request.nextUrl.searchParams;
-  const page = searchParams.get("page") || "1";
-  const pageSize = searchParams.get("pageSize") || "50";
-  const table = searchParams.get("table") || "raw_data";
 
   try {
     const backendUrl =
@@ -26,8 +22,7 @@ export async function GET(
       process.env.NEXT_PUBLIC_API_URL ||
       "http://localhost:4001";
 
-    const backendEndpoint = `${backendUrl}/dataset/${id}?page=${page}&pageSize=${pageSize}&table=${encodeURIComponent(table)}`;
-    const res = await fetch(backendEndpoint);
+    const res = await fetch(`${backendUrl}/dataset/${id}/tables`);
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -41,7 +36,7 @@ export async function GET(
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Dataset Proxy Error:", error);
+    console.error("Tables Proxy Error:", error);
     return NextResponse.json(
       {
         error: "Internal Server Error",

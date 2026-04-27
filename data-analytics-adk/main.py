@@ -159,8 +159,9 @@ async def delete_project(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/dataset/{session_id}")
-async def get_dataset_preview(session_id: str, page: int = 1, pageSize: int = 50):
+@app.get("/dataset/{session_id}/tables")
+async def list_dataset_tables(session_id: str):
+    """List all parquet files available for a session, with names, descriptions, and sizes."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -169,33 +170,129 @@ async def get_dataset_preview(session_id: str, page: int = 1, pageSize: int = 50
                     (session_id,)
                 )
                 result = cur.fetchone()
-                
+
                 if not result:
                     raise HTTPException(status_code=404, detail="Session not found")
-                
+
                 dataset_path = result[0]
                 if not dataset_path:
                     raise HTTPException(status_code=404, detail="Dataset not found")
-                
-                dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
-                raw_data_path = os.path.join("outputs", dataset_name, "raw_data.parquet")
 
-                target_path = raw_data_path if os.path.exists(raw_data_path) else dataset_path
+        dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+        output_dir = os.path.join("outputs", dataset_name)
+
+        # Load data_state from state.json for agent-assigned descriptions
+        descriptions = {}
+        state_path = os.path.join(output_dir, "state.json")
+        if os.path.exists(state_path):
+            try:
+                import json as _json
+                with open(state_path, "r", encoding="utf-8") as f:
+                    state = _json.load(f)
+                data_state = state.get("data_state", {})
+                for key, val in data_state.items():
+                    descriptions[key] = val.get("description", "")
+            except Exception:
+                pass
+
+        tables = []
+
+        # Always include raw_data first as the baseline
+        raw_parquet = os.path.join(output_dir, "raw_data.parquet")
+        if os.path.exists(raw_parquet):
+            tables.append({
+                "name": "raw_data",
+                "label": "Raw Data",
+                "description": descriptions.get("raw_data", "The initial data uploaded by the user."),
+                "sizeBytes": os.path.getsize(raw_parquet),
+            })
+
+        # Scan output dir for all other .parquet files
+        if os.path.isdir(output_dir):
+            for fname in sorted(os.listdir(output_dir)):
+                if fname.endswith(".parquet") and fname != "raw_data.parquet":
+                    stem = os.path.splitext(fname)[0]
+                    label = stem.replace("_", " ").title()
+                    full_path = os.path.join(output_dir, fname)
+                    tables.append({
+                        "name": stem,
+                        "label": label,
+                        "description": descriptions.get(stem, ""),
+                        "sizeBytes": os.path.getsize(full_path),
+                    })
+
+        # Fallback: no output dir yet, expose original dataset path
+        if not tables and dataset_path and os.path.exists(dataset_path):
+            tables.append({
+                "name": "raw_data",
+                "label": "Raw Data",
+                "description": "The initial data uploaded by the user.",
+                "sizeBytes": os.path.getsize(dataset_path),
+            })
+
+        return {"tables": tables}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dataset/{session_id}")
+async def get_dataset_preview(session_id: str, page: int = 1, pageSize: int = 50, table: str = "raw_data"):
+    """Fetch paginated rows from a specific parquet table for a session."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'SELECT "datasetPath" FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+
+                dataset_path = result[0]
+                if not dataset_path:
+                    raise HTTPException(status_code=404, detail="Dataset not found")
+
+                dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+                output_dir = os.path.join("outputs", dataset_name)
+
+                # Resolve requested parquet file — sanitize to prevent path traversal
+                safe_table = os.path.basename(table)  # strip any directory components
+                parquet_filename = f"{safe_table}.parquet"
+                target_path = os.path.join(output_dir, parquet_filename)
+
+                # Fallback: if output parquet doesn't exist yet, use raw CSV/dataset
+                if not os.path.exists(target_path):
+                    raw_fallback = os.path.join(output_dir, "raw_data.parquet")
+                    if os.path.exists(raw_fallback):
+                        target_path = raw_fallback
+                    elif os.path.exists(dataset_path):
+                        target_path = dataset_path
+                    else:
+                        raise HTTPException(status_code=404, detail=f"Table '{table}' not found")
 
                 import duckdb
                 safe_path = target_path.replace("\\", "/")
-                
-                # Count total rows directly via duckdb
+
+                # Count total rows
                 count_res = duckdb.execute(f"SELECT count(*) FROM '{safe_path}'").fetchone()
                 total_rows = count_res[0] if count_res else 0
-                
-                # Fetch paginated data using DuckDBEngine to get sanitized JSON response
+
+                # Fetch paginated rows using DuckDBEngine for sanitized JSON
                 from da_agent.duckdb_engine import DuckDBEngine
                 engine = DuckDBEngine()
-                engine.register_parquet("raw_data_preview", target_path)
-                
+                engine.register_parquet("_preview_table", target_path)
+
                 offset = (page - 1) * pageSize
-                res = engine.execute_query(f'SELECT * FROM "raw_data_preview" LIMIT {pageSize} OFFSET {offset}', max_rows=pageSize)
+                res = engine.execute_query(
+                    f'SELECT * FROM "_preview_table" LIMIT {pageSize} OFFSET {offset}',
+                    max_rows=pageSize
+                )
                 engine.close()
 
                 return {
@@ -203,7 +300,8 @@ async def get_dataset_preview(session_id: str, page: int = 1, pageSize: int = 50
                     "rows": res["rows"],
                     "totalCount": total_rows,
                     "page": page,
-                    "pageSize": pageSize
+                    "pageSize": pageSize,
+                    "table": safe_table,
                 }
     except HTTPException:
         raise
