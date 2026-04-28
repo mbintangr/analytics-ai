@@ -20,6 +20,44 @@ const AVAILABLE_MODELS = [
   { value: "nvidia_nim/openai/gpt-oss-120b", label: "GPT OSS 120B (NVIDIA NIM)" },
 ];
 
+// RFC 4180-compliant CSV row parser — handles quoted fields that may contain commas.
+function parseCsvRow(row: string): string[] {
+  const fields: string[] = [];
+  let i = 0;
+  while (i < row.length) {
+    if (row[i] === '"') {
+      // Quoted field
+      let field = '';
+      i++; // skip opening quote
+      while (i < row.length) {
+        if (row[i] === '"' && row[i + 1] === '"') {
+          // Escaped double-quote
+          field += '"';
+          i += 2;
+        } else if (row[i] === '"') {
+          i++; // skip closing quote
+          break;
+        } else {
+          field += row[i++];
+        }
+      }
+      fields.push(field);
+      if (row[i] === ',') i++; // skip comma separator
+    } else {
+      // Unquoted field
+      const end = row.indexOf(',', i);
+      if (end === -1) {
+        fields.push(row.slice(i));
+        break;
+      } else {
+        fields.push(row.slice(i, end));
+        i = end + 1;
+      }
+    }
+  }
+  return fields;
+}
+
 export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProps) {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -43,8 +81,8 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
       const text = e.target?.result as string;
       const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
       if (lines.length > 0) {
-        const headerRow = lines[0].split(",");
-        const dataRows = lines.slice(1, 6).map((line) => line.split(","));
+        const headerRow = parseCsvRow(lines[0]);
+        const dataRows = lines.slice(1, 6).map((line) => parseCsvRow(line));
         setHeaders(headerRow);
         setRows(dataRows);
       }
