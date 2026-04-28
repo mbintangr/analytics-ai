@@ -62,6 +62,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
+  const [isParquet, setIsParquet] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [loadingText, setLoadingText] = useState("Processing...");
   const [progress, setProgress] = useState(0);
@@ -74,26 +75,48 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
     if (selectedFile) processFile(selectedFile);
   };
 
-  const processFile = (file: File) => {
-    setFile(file);
+  const isParquetFile = (f: File) =>
+    f.name.toLowerCase().endsWith(".parquet") ||
+    f.type === "application/octet-stream" && f.name.toLowerCase().endsWith(".parquet");
+
+  const isValidFile = (f: File) =>
+    f.name.toLowerCase().endsWith(".csv") ||
+    f.name.toLowerCase().endsWith(".parquet");
+
+  const processFile = (f: File) => {
+    if (!isValidFile(f)) return;
+    setFile(f);
+    if (isParquetFile(f)) {
+      setIsParquet(true);
+      setHeaders([]);
+      setRows([]);
+      return;
+    }
+    setIsParquet(false);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
       const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
       if (lines.length > 0) {
         const headerRow = parseCsvRow(lines[0]);
-        const dataRows = lines.slice(1, 6).map((line) => parseCsvRow(line));
+        const colCount = headerRow.length;
+        const dataRows = lines.slice(1, 6).map((line) => {
+          const cells = parseCsvRow(line);
+          // Clamp to header length so extra cells from unquoted commas don't shift columns
+          while (cells.length < colCount) cells.push("");
+          return cells.slice(0, colCount);
+        });
         setHeaders(headerRow);
         setRows(dataRows);
       }
     };
-    reader.readAsText(file);
+    reader.readAsText(f);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type === "text/csv") {
+    if (droppedFile && isValidFile(droppedFile)) {
       processFile(droppedFile);
     }
   };
@@ -102,6 +125,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
     setFile(null);
     setHeaders([]);
     setRows([]);
+    setIsParquet(false);
     setBusinessQuestions("");
     setSelectedModel(AVAILABLE_MODELS[0].value);
     setIsUploading(false);
@@ -210,8 +234,8 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
                 <IoMdCloudUpload className="text-4xl text-primary" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-white">Drop CSV file here or click to upload</p>
-                <p className="mt-1 text-sm font-normal text-[#90a4cb]">Supported formats: .csv</p>
+                <p className="text-lg font-bold text-white">Drop file here or click to upload</p>
+                <p className="mt-1 text-sm font-normal text-[#90a4cb]">Supported formats: .csv, .parquet</p>
               </div>
               <button className="cursor-pointer mt-2 flex h-9 items-center justify-center rounded-lg bg-[#182234] px-4 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-[#314368] transition-all hover:bg-[#222f49] hover:ring-white/20">
                 Browse Files
@@ -249,32 +273,41 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
               </h3>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-[#314368] bg-[#101623]">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-[#182234]">
-                    <tr>
-                      {headers.map((header, i) => (
-                        <th key={i} className="whitespace-nowrap px-4 py-3 text-sm font-medium text-[#90a4cb]">
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#314368]">
-                    {rows.map((row, i) => (
-                      <tr key={i} className="group hover:bg-white/5">
-                        {row.map((cell, j) => (
-                          <td key={j} className="whitespace-nowrap px-4 py-3 text-sm text-white">
-                            {cell}
-                          </td>
+            {isParquet ? (
+              <div className="flex items-center gap-3 rounded-lg border border-[#314368] bg-[#182234]/30 px-4 py-4">
+                <span className="material-symbols-outlined text-[#90a4cb] text-xl">info</span>
+                <p className="text-sm text-[#90a4cb]">
+                  Preview is not available for Parquet files. The file will be processed directly by the analysis engine.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-[#314368] bg-[#101623]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-[#182234]">
+                      <tr>
+                        {headers.map((header, i) => (
+                          <th key={i} className="whitespace-nowrap px-4 py-3 text-sm font-medium text-[#90a4cb]">
+                            {header}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-[#314368]">
+                      {rows.map((row, i) => (
+                        <tr key={i} className="group hover:bg-white/5">
+                          {row.map((cell, j) => (
+                            <td key={j} className="whitespace-nowrap px-4 py-3 text-sm text-white">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-6">
               <h3 className="text-lg font-bold leading-tight tracking-tight text-white mb-3">
@@ -321,7 +354,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
           type="file"
           ref={fileInputRef}
           className="hidden"
-          accept=".csv"
+          accept=".csv,.parquet"
           onChange={handleFileChange}
         />
       </div>
