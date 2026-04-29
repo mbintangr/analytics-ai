@@ -24,6 +24,13 @@ export function ProjectsContent({ initialStats }: ProjectsContentProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(initialStats || null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStatsExpanded, setIsStatsExpanded] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsStatsExpanded(window.innerWidth >= 768);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchProjects = async (isBackground = false) => {
@@ -131,7 +138,24 @@ export function ProjectsContent({ initialStats }: ProjectsContentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {stats && <StatsRow {...stats} />}
+      {stats && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Project Stats</h2>
+            <button
+              onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+              className="text-sm px-4 py-2 rounded-lg border hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center gap-2"
+              style={{ color: "var(--text-secondary)", borderColor: "var(--surface-border)" }}
+            >
+              {isStatsExpanded ? "Hide Stats" : "Show Stats"}
+              <span className="material-symbols-outlined text-[18px]">
+                {isStatsExpanded ? "expand_less" : "expand_more"}
+              </span>
+            </button>
+          </div>
+          {isStatsExpanded && <StatsRow {...stats} />}
+        </div>
+      )}
       <ProjectGrid
         projects={projects}
         onProjectClick={handleProjectClick}

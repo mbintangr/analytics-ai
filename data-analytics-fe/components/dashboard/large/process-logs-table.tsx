@@ -83,7 +83,7 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
             style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
           >
             <IoDownloadOutline size={14} />
-            Export CSV
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
         </div>
         <table className="w-full text-left text-xs font-mono" style={{ color: "var(--text-secondary)" }}>

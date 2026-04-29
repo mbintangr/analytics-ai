@@ -202,7 +202,7 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsSelectOpen(false)} />
                     <div
-                      className="absolute right-0 top-full mt-1.5 z-20 w-72 rounded-xl border shadow-2xl overflow-hidden"
+                      className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 w-[calc(100vw-2rem)] max-w-xs sm:max-w-none sm:w-72 rounded-xl border shadow-2xl overflow-hidden"
                       style={{
                         background: "var(--surface-card)",
                         borderColor: "var(--surface-border)",
@@ -267,13 +267,14 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
             disabled={isExporting || !data || data.rows.length === 0}
             className="flex items-center gap-2 pl-3 pr-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-white"
             style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
+            title="Export CSV"
           >
             {isExporting ? (
               <div className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--text-muted)" }} />
             ) : (
               <IoDownloadOutline size={15} />
             )}
-            {isExporting ? "Exporting…" : "Export CSV"}
+            <span className="hidden sm:inline">{isExporting ? "Exporting…" : "Export CSV"}</span>
           </button>
         </div>
       </div>

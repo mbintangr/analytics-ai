@@ -54,8 +54,8 @@ export default async function Home() {
   return (
     <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
-      <main className="flex-1 h-full overflow-y-auto relative">
-        <div className="w-full h-full flex flex-col items-center justify-center p-6 md:p-10">
+      <main className="flex-1 h-full overflow-y-auto relative pt-16 md:pt-0">
+        <div className="w-full min-h-full flex flex-col items-center justify-start md:justify-center p-4 sm:p-6 md:p-10">
           <HomeContent userName={session?.user?.name} userId={session?.user?.id} recentProjects={projects} />
         </div>
       </main>

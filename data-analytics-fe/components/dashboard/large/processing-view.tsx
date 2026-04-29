@@ -132,7 +132,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     return "pending";
   };
 
-  const getProgressWidth = () => {
+  const getProgressHeight = () => {
     if (status === "COMPLETED") return "100%";
 
     const currentAgent = status.replace("PROCESSING ", "").trim();
@@ -241,13 +241,13 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
               </div>
             ) : (
               /* Progress Nodes */
-              <div className="w-full max-w-5xl relative flex items-center justify-between h-48 animate-in fade-in zoom-in duration-500">
+              <div className="w-full max-w-md relative flex flex-col items-start gap-12 h-auto py-8 animate-in fade-in zoom-in duration-500 mx-auto">
                 {/* Connector Lines */}
-                <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 z-0 w-full mx-12" style={{ background: "var(--surface-border)" }}></div>
+                <div className="absolute left-[31px] top-16 bottom-16 w-0.5 z-0" style={{ background: "var(--surface-border)" }}></div>
                 {/* Active Beam Line */}
                 <div
-                  className="absolute left-0 top-1/2 h-0.5 bg-linear-to-r from-secondary via-secondary to-primary -translate-y-1/2 z-0 mx-12 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
-                  style={{ width: getProgressWidth() }}
+                  className="absolute left-[31px] top-16 w-0.5 bg-linear-to-b from-secondary via-secondary to-primary z-0 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
+                  style={{ height: getProgressHeight() }}
                 ></div>
 
                 <StatusNode
@@ -280,16 +280,16 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
 function StatusNode({ title, status, icon, detail }: { title: string, status: StepStatus, icon: React.ReactNode, detail?: string }) {
   if (status === "completed") {
     return (
-      <div className="relative z-10 flex flex-col items-center group">
-        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-4 ring-2 ring-emerald-500/50 transition-transform hover:scale-110"
+      <div className="relative z-10 flex flex-row items-center gap-6 group w-full">
+        <div className="w-16 h-16 shrink-0 rounded-full bg-secondary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-4 ring-2 ring-emerald-500/50 transition-transform hover:scale-110"
           style={{ borderColor: "var(--surface-cyber)" }}
         >
-          <span className="text-3xl font-bold" style={{ color: "var(--surface-cyber)" }}>{icon}</span>
+          <span className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--surface-cyber)" }}>{icon}</span>
         </div>
-        <div className="absolute top-20 flex flex-col items-center w-48 text-center">
-          <span className="text-emerald-400 font-mono text-xs uppercase tracking-wider mb-1">Completed</span>
-          <h3 className="font-semibold text-white">{title}</h3>
-          {detail && <p className="text-slate-500 text-xs mt-1">{detail}</p>}
+        <div className="flex flex-col text-left min-w-0">
+          <span className="text-emerald-400 font-mono text-[10px] sm:text-xs uppercase tracking-wider mb-1">Completed</span>
+          <h3 className="font-semibold text-white text-sm sm:text-base truncate">{title}</h3>
+          {detail && <p className="text-slate-500 text-[10px] sm:text-xs mt-1 truncate">{detail}</p>}
         </div>
       </div>
     );
@@ -297,29 +297,29 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
 
   if (status === "processing") {
     return (
-      <div className="relative z-10 flex flex-col items-center">
-        <div className="relative w-20 h-20 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-primary opacity-20 animate-ping"></div>
-          <div className="absolute inset-0 rounded-full bg-primary opacity-40 animate-pulse-glow"></div>
+      <div className="relative z-10 flex flex-row items-center gap-6 w-full">
+        <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+          <div className="absolute inset-[-8px] rounded-full bg-primary opacity-20 animate-ping"></div>
+          <div className="absolute inset-[-8px] rounded-full bg-primary opacity-40 animate-pulse-glow"></div>
           <div
             className="relative w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_30px_rgba(13,89,242,0.6)] z-20"
             style={{ background: "var(--surface-cyber)" }}
           >
-            <span className="text-primary text-3xl animate-pulse">{icon}</span>
+            <span className="text-primary text-2xl sm:text-3xl animate-pulse">{icon}</span>
           </div>
         </div>
-        <div className="absolute top-24 flex flex-col items-center w-56 text-center">
-          <span className="text-primary font-mono text-xs uppercase tracking-wider mb-1 animate-pulse">In Progress</span>
-          <h3 className="text-white font-bold text-base">{title}</h3>
+        <div className="flex flex-col text-left min-w-0">
+          <span className="text-primary font-mono text-[10px] sm:text-xs uppercase tracking-wider mb-1 animate-pulse">In Progress</span>
+          <h3 className="text-white font-bold text-sm sm:text-base truncate">{title}</h3>
           <div
-            className="mt-2 border border-primary/30 rounded px-3 py-2 text-left w-full max-w-[200px]"
+            className="mt-2 border border-primary/30 rounded px-3 py-2 text-left w-full max-w-[200px] sm:max-w-[240px]"
             style={{ background: "var(--glass-bg)" }}
           >
             <div className="flex items-center gap-2 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-              <span className="text-sm text-primary/80 font-mono">Working...</span>
+              <span className="text-[10px] sm:text-xs text-primary/80 font-mono">Working...</span>
             </div>
-            {detail && <p className="text-xs text-slate-400 leading-tight">{detail}</p>}
+            {detail && <p className="text-[10px] text-slate-400 leading-tight truncate">{detail}</p>}
           </div>
         </div>
       </div>
@@ -328,16 +328,16 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
 
   // Pending
   return (
-    <div className="relative z-10 flex flex-col items-center group">
+    <div className="relative z-10 flex flex-row items-center gap-6 group w-full pl-1">
       <div
-        className="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-colors group-hover:border-slate-500"
+        className="w-14 h-14 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors group-hover:border-slate-500"
         style={{ background: "var(--surface-cyber)", borderColor: "var(--surface-border)" }}
       >
-        <span className="text-2xl text-slate-600 group-hover:text-slate-400">{icon}</span>
+        <span className="text-xl sm:text-2xl text-slate-600 group-hover:text-slate-400">{icon}</span>
       </div>
-      <div className="absolute top-20 flex flex-col items-center w-48 text-center">
-        <span className="text-slate-600 font-mono text-xs uppercase tracking-wider mb-1">Pending</span>
-        <h3 className="text-slate-400 font-medium">{title}</h3>
+      <div className="flex flex-col text-left min-w-0">
+        <span className="text-slate-600 font-mono text-[10px] sm:text-xs uppercase tracking-wider mb-1">Pending</span>
+        <h3 className="text-slate-400 font-medium text-sm sm:text-base truncate">{title}</h3>
       </div>
     </div>
   );

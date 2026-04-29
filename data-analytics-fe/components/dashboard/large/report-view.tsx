@@ -126,13 +126,13 @@ export function ReportView({
           </button>
         )}
         {isPage && (
-          <Link
-            href="/"
+          <button
+            onClick={() => router.back()}
             className="mt-4 px-4 py-2 rounded-lg text-white transition-colors hover:opacity-80"
             style={{ background: "var(--surface-card)" }}
           >
-            Go Back to Dashboard
-          </Link>
+            Go Back
+          </button>
         )}
       </div>
     );
@@ -153,14 +153,14 @@ export function ReportView({
         {/* Back Button + Regenerate */}
         <div className="flex items-center justify-between mb-8">
           {isPage ? (
-            <Link
-              href="/"
+            <button
+              onClick={() => router.back()}
               className="group flex items-center gap-2 transition-colors w-fit hover:text-primary"
               style={{ color: "var(--text-secondary)" }}
             >
               <IoArrowBackOutline size={20} />
-              <span className="text-sm font-medium">Back to Projects</span>
-            </Link>
+              <span className="text-sm font-medium">Back</span>
+            </button>
           ) : (
             <button
               onClick={onBack}
@@ -180,7 +180,7 @@ export function ReportView({
               style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
             >
               <IoReload size={16} className={isRegenerating ? "animate-spin" : ""} />
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium hidden sm:inline">
                 {isRegenerating ? "Regenerating..." : "Regenerate Report"}
               </span>
             </button>

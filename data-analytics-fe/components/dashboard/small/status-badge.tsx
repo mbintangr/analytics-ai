@@ -31,7 +31,7 @@ export function StatusBadge({ status, duration, className }: StatusBadgeProps) {
   const style = styles[status];
 
   return (
-    <div className={cn("mt-auto flex items-center justify-between pt-2 border-t border-white/5", className)}>
+    <div className={cn("mt-auto flex items-center justify-between gap-3 pt-2 border-t border-white/5", className)}>
       <div
         className={cn(
           "flex items-center gap-2 px-2.5 py-1 rounded-full border",
