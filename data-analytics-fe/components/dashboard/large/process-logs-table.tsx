@@ -19,6 +19,7 @@ interface ProcessLogsTableProps {
   className?: string;
   isLoading?: boolean;
   autoScroll?: boolean;
+  standalone?: boolean;
 }
 
 function escapeCsvCell(value: string | null | undefined): string {
@@ -50,7 +51,7 @@ function exportLogsToCsv(logs: ProcessLog[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ProcessLogsTable({ logs, className, isLoading, autoScroll = false }: ProcessLogsTableProps) {
+export function ProcessLogsTable({ logs, className, isLoading, autoScroll = false, standalone = false }: ProcessLogsTableProps) {
   const scrollRef = useRef<HTMLTableRowElement>(null);
   const [selectedLog, setSelectedLog] = useState<ProcessLog | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -65,33 +66,74 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
     }
   }, [logs.length, autoScroll]);
 
+  const tableHeader = standalone ? (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
+      <div>
+        <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>System Logs</h3>
+        <p className="text-xs mt-0.5 max-w-md" style={{ color: "var(--text-muted)" }}>
+          Execution trace and tool usage for this session.
+        </p>
+      </div>
+
+      <div className="flex w-full sm:w-auto items-stretch gap-2 shrink-0">
+        <span className="text-xs font-medium px-3 py-2 rounded-lg border flex items-center h-[38px]" style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)", color: "var(--text-muted)" }}>
+          {logs.length} {logs.length === 1 ? "entry" : "entries"}
+        </span>
+        <button
+          onClick={() => exportLogsToCsv(logs)}
+          disabled={logs.length === 0}
+          className="flex h-[38px] items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-primary shrink-0"
+          style={{
+            borderColor: "var(--surface-border)",
+            color: "var(--text-secondary)",
+          }}
+          title="Export CSV"
+        >
+          <IoDownloadOutline size={15} />
+          <span className="hidden sm:inline">Export CSV</span>
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div
+      className="flex items-center justify-between px-4 py-2.5 border-b backdrop-blur-sm shrink-0"
+      style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}
+    >
+      <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+        {logs.length} {logs.length === 1 ? "entry" : "entries"}
+      </span>
+      <button
+        onClick={() => exportLogsToCsv(logs)}
+        disabled={logs.length === 0}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-primary"
+        style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
+      >
+        <IoDownloadOutline size={14} />
+        <span className="hidden sm:inline">Export CSV</span>
+      </button>
+    </div>
+  );
+
   return (
     <>
-      <div className={cn("overflow-auto", className)}>
-        {/* Toolbar */}
+      <div className={cn(standalone ? "flex flex-col h-full animate-in fade-in duration-300" : "flex flex-col h-full overflow-hidden w-full", className)}>
+        {standalone ? tableHeader : null}
+        
         <div
-          className="flex items-center justify-between px-4 py-2.5 border-b backdrop-blur-sm"
-          style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}
+          className={cn(
+            standalone ? "flex-1 overflow-hidden border rounded-xl flex flex-col relative" : "flex-1 flex flex-col overflow-hidden relative"
+          )}
+          style={standalone ? { borderColor: "var(--surface-border)", background: "var(--surface-card)" } : undefined}
         >
-          <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
-            {logs.length} {logs.length === 1 ? "entry" : "entries"}
-          </span>
-          <button
-            onClick={() => exportLogsToCsv(logs)}
-            disabled={logs.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:text-white hover:border-primary/60 hover:bg-primary/10"
-            style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
-          >
-            <IoDownloadOutline size={14} />
-            <span className="hidden sm:inline">Export CSV</span>
-          </button>
-        </div>
-        <table className="w-full text-left text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
-          <thead
-            className="sticky top-0 z-10 backdrop-blur-md"
-            style={{ background: "var(--surface-inset)", color: "var(--text-muted)" }}
-          >
-            <tr>
+          {!standalone ? tableHeader : null}
+          
+          <div className="overflow-auto flex-1 w-full">
+            <table className="w-full text-left text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
+              <thead
+                className="sticky top-0 z-10 backdrop-blur-md"
+                style={{ background: "var(--surface-inset)", color: "var(--text-muted)" }}
+              >
+                <tr style={{ borderBottom: "1px solid var(--surface-border)" }}>
               <th className="px-4 py-3 font-medium">Time</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Name</th>
@@ -157,6 +199,8 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
             <tr ref={scrollRef}></tr>
           </tbody>
         </table>
+          </div>
+        </div>
       </div>
 
       {/* Log Details Modal via Portal */}

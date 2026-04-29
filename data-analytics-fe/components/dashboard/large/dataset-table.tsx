@@ -150,43 +150,43 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex w-full sm:w-auto items-stretch gap-2 shrink-0">
           {/* Dataset select box */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none min-w-0 flex flex-col">
             {tablesLoading ? (
               <div
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm h-[38px]"
                 style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)", color: "var(--text-secondary)" }}
               >
                 <div className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--text-muted)" }} />
-                <span>Loading datasets…</span>
+                <span>Loading…</span>
               </div>
             ) : tablesError ? (
-              <div className="px-3 py-2 rounded-lg border border-red-800/60 bg-red-900/20 text-red-400 text-xs">
+              <div className="px-3 py-2 rounded-lg border border-red-800/60 bg-red-900/20 text-red-400 text-xs h-[38px] flex items-center">
                 {tablesError}
               </div>
             ) : tables.length === 0 ? (
               <div
-                className="px-3 py-2 rounded-lg border text-sm"
+                className="px-3 py-2 rounded-lg border text-sm h-[38px] flex items-center"
                 style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)", color: "var(--text-muted)" }}
               >
-                No datasets available
+                No datasets
               </div>
             ) : (
               <>
                 <button
                   id="dataset-selector-btn"
                   onClick={() => setIsSelectOpen((o) => !o)}
-                  className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg border hover:border-primary/60 transition-all text-sm min-w-[180px] justify-between"
+                  className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg border hover:border-primary/60 transition-all text-sm w-full h-[38px] sm:min-w-[180px] justify-between"
                   style={{
                     borderColor: "var(--surface-border)",
                     background: "var(--surface-inset)",
                     color: "var(--text-primary)",
                   }}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <IoDocumentOutline size={15} className="text-primary shrink-0" />
-                    <span className="truncate max-w-[140px]">
+                    <span className="truncate">
                       {activeTableInfo?.label ?? selectedTable}
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsSelectOpen(false)} />
                     <div
-                      className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 w-[calc(100vw-2rem)] max-w-xs sm:max-w-none sm:w-72 rounded-xl border shadow-2xl overflow-hidden"
+                      className="absolute left-0 top-full mt-1.5 z-50 min-w-full w-[280px] sm:w-[360px] max-w-[85vw] rounded-xl border shadow-2xl overflow-hidden"
                       style={{
                         background: "var(--surface-card)",
                         borderColor: "var(--surface-border)",
@@ -265,7 +265,7 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
           <button
             onClick={handleExportCsv}
             disabled={isExporting || !data || data.rows.length === 0}
-            className="flex items-center gap-2 pl-3 pr-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-white"
+            className="flex h-[38px] items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-primary shrink-0"
             style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
             title="Export CSV"
           >

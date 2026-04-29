@@ -147,7 +147,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
 
   return (
     <div className={cn("relative flex h-full w-full flex-col overflow-hidden font-display selection:bg-primary selection:text-white", className)}
-      style={{ background: "var(--surface-cyber)", color: "var(--text-primary)" }}
+      style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}
     >
       {/* Grid Background */}
       <div className="fixed inset-0 pointer-events-none z-0 h-full w-full opacity-40"
@@ -158,95 +158,94 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
         }}
       >
         <div
-          className="absolute inset-0 bg-linear-to-t from-[color:var(--surface-cyber)] via-transparent to-transparent"
+          className="absolute inset-0 bg-linear-to-t from-[color:var(--surface-base)] via-transparent to-transparent"
         ></div>
       </div>
 
-      <div className="relative flex h-full w-full flex-col z-10">
-        <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex h-full w-full flex-col z-10 p-4 pt-20 md:p-12 md:pt-12 gap-6 overflow-hidden">
 
-          {/* Header Info Card */}
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-4">
-            <div
-              className="flex flex-col gap-1 backdrop-blur-md border p-4 rounded-xl shadow-2xl min-w-fit"
-              style={{ background: "var(--glass-bg)", borderColor: "var(--glass-border)" }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-widest font-mono" style={{ color: "var(--text-secondary)" }}>Filename</span>
-                <span className="text-[10px] uppercase tracking-widest font-mono" style={{ color: "var(--text-secondary)" }}>Elapsed</span>
-              </div>
-              <div className="flex items-center justify-between gap-6">
-                <div className="flex items-center gap-2">
-                  <TbFileDescription className="text-primary text-xl" />
-                  <span className="text-sm font-semibold truncate max-w-[200px]" style={{ color: "var(--text-primary)" }} title={filename}>
-                    {filename || "Unknown"}
-                  </span>
-                </div>
-                <div className="font-mono text-emerald-400 font-bold text-lg">
-                  {formatTime(elapsedTime)}
-                </div>
-              </div>
+        {/* Header Info Card */}
+        <div className="w-full md:w-fit md:min-w-[600px] mx-auto z-20 flex flex-col gap-4 shrink-0">
+          <div
+            className="flex flex-col gap-1 backdrop-blur-md border p-4 rounded-xl shadow-2xl w-full"
+            style={{ background: "var(--glass-bg)", borderColor: "var(--surface-border)" }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-widest font-mono" style={{ color: "var(--text-secondary)" }}>Filename</span>
+              <span className="text-[10px] uppercase tracking-widest font-mono" style={{ color: "var(--text-secondary)" }}>Elapsed</span>
             </div>
-
-            {/* Logs Toggle + Cancel */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowLogs(!showLogs)}
-                className="px-4 py-2 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm border hover:opacity-80"
-                style={{ background: "var(--glass-bg)", borderColor: "var(--surface-border)" }}
-              >
-                {showLogs ? "Hide System Logs" : "Show System Logs"}
-              </button>
-              {reportId && (
-                <button
-                  onClick={handleCancel}
-                  disabled={isCancelling}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-700/50 hover:border-red-500 rounded-full text-xs font-mono uppercase tracking-wider text-red-400 hover:text-red-300 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <IoClose size={14} />
-                  {isCancelling ? "Cancelling..." : "Cancel Analysis"}
-                </button>
-              )}
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <TbFileDescription className="text-primary text-xl" />
+                <span className="text-sm font-semibold truncate max-w-[160px] sm:max-w-[400px]" style={{ color: "var(--text-primary)" }} title={filename}>
+                  {filename || "Unknown"}
+                </span>
+              </div>
+              <div className="font-mono text-emerald-400 font-bold text-lg">
+                {formatTime(elapsedTime)}
+              </div>
             </div>
           </div>
 
-          {/* Main Content Area */}
-          <main
-            className="flex-1 relative overflow-hidden flex flex-col items-center justify-center p-12"
-            style={{ background: "rgba(2,6,23,0.5)" }}
-          >
-            {showLogs ? (
-              <div
-                className="w-full max-w-5xl h-[60vh] backdrop-blur-xl border rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300"
-                style={{ background: "var(--surface-deep)", borderColor: "var(--surface-border)" }}
+          {/* Logs Toggle + Cancel */}
+          <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+            <button
+              onClick={() => setShowLogs(!showLogs)}
+              className="px-4 py-2 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm border hover:opacity-80"
+              style={{ background: "var(--glass-bg)", borderColor: "var(--surface-border)" }}
+            >
+              {showLogs ? "Hide System Logs" : "Show System Logs"}
+            </button>
+            {reportId && (
+              <button
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-900/10 hover:bg-red-800/20 border border-red-700/30 hover:border-red-500 rounded-full text-xs font-mono uppercase tracking-wider text-red-500 hover:text-red-400 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div
-                  className="p-4 border-b flex justify-between items-center"
-                  style={{ borderColor: "var(--surface-border)", background: "var(--glass-bg)" }}
-                >
-                  <h3 className="font-mono text-sm text-primary uppercase tracking-wider">System Execution Logs</h3>
-                  <div className="flex gap-2">
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                      <span className="text-[10px] text-blue-300">AGENT</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                      <span className="text-[10px] text-green-300">TOOL</span>
-                    </div>
+                <IoClose size={14} />
+                {isCancelling ? "Cancelling..." : "Cancel Analysis"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <main
+          className="flex-1 w-full relative overflow-y-auto overflow-x-hidden flex flex-col pb-4 md:pb-0"
+        >
+          {showLogs ? (
+            <div
+              className="w-full max-w-5xl mx-auto h-full min-h-[400px] backdrop-blur-xl border rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300"
+              style={{ background: "var(--surface-deep)", borderColor: "var(--surface-border)" }}
+            >
+              <div
+                className="p-4 border-b flex justify-between items-center"
+                style={{ borderColor: "var(--surface-border)", background: "var(--glass-bg)" }}
+              >
+                <h3 className="font-mono text-sm text-primary uppercase tracking-wider">System Execution Logs</h3>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 hidden sm:inline-block"></span>
+                    <span className="text-[10px] text-blue-300">AGENT</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 hidden sm:inline-block"></span>
+                    <span className="text-[10px] text-green-300">TOOL</span>
                   </div>
                 </div>
-
-                <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} />
               </div>
-            ) : (
-              /* Progress Nodes */
-              <div className="w-full max-w-md relative flex flex-col items-start gap-12 h-auto py-8 animate-in fade-in zoom-in duration-500 mx-auto">
+
+              <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} />
+            </div>
+          ) : (
+            /* Progress Nodes */
+            <div className="w-full max-w-5xl mx-auto h-full flex flex-col items-center justify-start md:justify-center p-4 sm:p-12 min-h-[400px]">
+              <div className="w-full max-w-lg md:max-w-3xl relative flex flex-col items-start gap-12 md:gap-20 h-auto py-8 md:py-16 pl-8 sm:pl-12 md:pl-20 animate-in fade-in zoom-in duration-500 mx-auto">
                 {/* Connector Lines */}
-                <div className="absolute left-[31px] top-16 bottom-16 w-0.5 z-0" style={{ background: "var(--surface-border)" }}></div>
+                <div className="absolute left-[63px] sm:left-[79px] md:left-[127px] top-16 md:top-24 bottom-16 md:bottom-24 w-0.5 md:w-1 z-0" style={{ background: "var(--surface-border)" }}></div>
                 {/* Active Beam Line */}
                 <div
-                  className="absolute left-[31px] top-16 w-0.5 bg-linear-to-b from-secondary via-secondary to-primary z-0 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
+                  className="absolute left-[63px] sm:left-[79px] md:left-[127px] top-16 md:top-24 w-0.5 md:w-1 bg-linear-to-b from-secondary via-secondary to-primary z-0 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
                   style={{ height: getProgressHeight() }}
                 ></div>
 
@@ -269,9 +268,9 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                   detail="Generating Final Report"
                 />
               </div>
-            )}
-          </main>
-        </div>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
@@ -280,16 +279,16 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
 function StatusNode({ title, status, icon, detail }: { title: string, status: StepStatus, icon: React.ReactNode, detail?: string }) {
   if (status === "completed") {
     return (
-      <div className="relative z-10 flex flex-row items-center gap-6 group w-full">
-        <div className="w-16 h-16 shrink-0 rounded-full bg-secondary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-4 ring-2 ring-emerald-500/50 transition-transform hover:scale-110"
-          style={{ borderColor: "var(--surface-cyber)" }}
+      <div className="relative z-10 flex flex-row items-center gap-6 md:gap-10 group w-full">
+        <div className="w-16 h-16 md:w-24 md:h-24 shrink-0 rounded-full bg-secondary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-4 ring-2 ring-emerald-500/50 transition-transform hover:scale-110"
+          style={{ borderColor: "var(--surface-base)" }}
         >
-          <span className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--surface-cyber)" }}>{icon}</span>
+          <span className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">{icon}</span>
         </div>
-        <div className="flex flex-col text-left min-w-0">
-          <span className="text-emerald-400 font-mono text-[10px] sm:text-xs uppercase tracking-wider mb-1">Completed</span>
-          <h3 className="font-semibold text-white text-sm sm:text-base truncate">{title}</h3>
-          {detail && <p className="text-slate-500 text-[10px] sm:text-xs mt-1 truncate">{detail}</p>}
+        <div className="flex flex-col text-left min-w-0 md:pl-2">
+          <span className="text-emerald-500 font-mono text-[10px] sm:text-xs md:text-sm uppercase tracking-wider mb-1 md:mb-2">Completed</span>
+          <h3 className="font-semibold text-sm sm:text-base md:text-2xl truncate" style={{ color: "var(--text-primary)" }}>{title}</h3>
+          {detail && <p className="text-[10px] sm:text-xs md:text-sm mt-1 md:mt-2 truncate" style={{ color: "var(--text-secondary)" }}>{detail}</p>}
         </div>
       </div>
     );
@@ -297,29 +296,29 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
 
   if (status === "processing") {
     return (
-      <div className="relative z-10 flex flex-row items-center gap-6 w-full">
-        <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-          <div className="absolute inset-[-8px] rounded-full bg-primary opacity-20 animate-ping"></div>
-          <div className="absolute inset-[-8px] rounded-full bg-primary opacity-40 animate-pulse-glow"></div>
+      <div className="relative z-10 flex flex-row items-center gap-6 md:gap-10 w-full">
+        <div className="relative w-16 h-16 md:w-24 md:h-24 shrink-0 flex items-center justify-center">
+          <div className="absolute inset-[-8px] md:inset-[-12px] rounded-full bg-primary opacity-20 animate-ping"></div>
+          <div className="absolute inset-[-8px] md:inset-[-12px] rounded-full bg-primary opacity-40 animate-pulse-glow"></div>
           <div
-            className="relative w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_30px_rgba(13,89,242,0.6)] z-20"
-            style={{ background: "var(--surface-cyber)" }}
+            className="relative w-16 h-16 md:w-24 md:h-24 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_30px_rgba(13,89,242,0.6)] z-20"
+            style={{ background: "var(--surface-base)" }}
           >
-            <span className="text-primary text-2xl sm:text-3xl animate-pulse">{icon}</span>
+            <span className="text-primary text-2xl sm:text-3xl md:text-5xl animate-pulse">{icon}</span>
           </div>
         </div>
-        <div className="flex flex-col text-left min-w-0">
-          <span className="text-primary font-mono text-[10px] sm:text-xs uppercase tracking-wider mb-1 animate-pulse">In Progress</span>
-          <h3 className="text-white font-bold text-sm sm:text-base truncate">{title}</h3>
+        <div className="flex flex-col text-left min-w-0 md:pl-2">
+          <span className="text-primary font-mono text-[10px] sm:text-xs md:text-sm uppercase tracking-wider mb-1 md:mb-2 animate-pulse">In Progress</span>
+          <h3 className="font-bold text-sm sm:text-base md:text-2xl truncate" style={{ color: "var(--text-primary)" }}>{title}</h3>
           <div
-            className="mt-2 border border-primary/30 rounded px-3 py-2 text-left w-full max-w-[200px] sm:max-w-[240px]"
+            className="mt-2 md:mt-4 border border-primary/30 rounded-lg px-3 py-2 md:px-5 md:py-4 text-left w-full max-w-[200px] sm:max-w-[240px] md:max-w-[340px]"
             style={{ background: "var(--glass-bg)" }}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-              <span className="text-[10px] sm:text-xs text-primary/80 font-mono">Working...</span>
+            <div className="flex items-center gap-2 mb-1 md:mb-2">
+              <div className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-primary animate-pulse"></div>
+              <span className="text-[10px] sm:text-xs md:text-sm text-primary/80 font-mono">Working...</span>
             </div>
-            {detail && <p className="text-[10px] text-slate-400 leading-tight truncate">{detail}</p>}
+            {detail && <p className="text-[10px] md:text-sm leading-tight truncate" style={{ color: "var(--text-muted)" }}>{detail}</p>}
           </div>
         </div>
       </div>
@@ -328,16 +327,16 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
 
   // Pending
   return (
-    <div className="relative z-10 flex flex-row items-center gap-6 group w-full pl-1">
+    <div className="relative z-10 flex flex-row items-center gap-6 md:gap-10 group w-full pl-1 md:pl-2">
       <div
-        className="w-14 h-14 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors group-hover:border-slate-500"
-        style={{ background: "var(--surface-cyber)", borderColor: "var(--surface-border)" }}
+        className="w-14 h-14 md:w-20 md:h-20 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors hover:border-primary/50"
+        style={{ background: "var(--surface-base)", borderColor: "var(--surface-border)" }}
       >
-        <span className="text-xl sm:text-2xl text-slate-600 group-hover:text-slate-400">{icon}</span>
+        <span className="text-xl sm:text-2xl md:text-4xl transition-colors group-hover:text-primary/70" style={{ color: "var(--text-muted)" }}>{icon}</span>
       </div>
-      <div className="flex flex-col text-left min-w-0">
-        <span className="text-slate-600 font-mono text-[10px] sm:text-xs uppercase tracking-wider mb-1">Pending</span>
-        <h3 className="text-slate-400 font-medium text-sm sm:text-base truncate">{title}</h3>
+      <div className="flex flex-col text-left min-w-0 md:pl-2">
+        <span className="font-mono text-[10px] sm:text-xs md:text-sm uppercase tracking-wider mb-1 md:mb-2" style={{ color: "var(--text-muted)" }}>Pending</span>
+        <h3 className="font-medium text-sm sm:text-base md:text-2xl truncate" style={{ color: "var(--text-secondary)" }}>{title}</h3>
       </div>
     </div>
   );

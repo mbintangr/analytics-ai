@@ -141,7 +141,7 @@ export function ReportView({
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 md:pt-10 scroll-smooth h-full">
       <div
-        className="max-w-5xl mx-auto backdrop-blur-md border rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden"
+        className="max-w-5xl mx-auto backdrop-blur-md border rounded-2xl p-6 md:p-12 shadow-2xl relative overflow-hidden"
         style={{
           background: "var(--glass-bg)",
           borderColor: "var(--surface-border)",
@@ -255,7 +255,7 @@ export function ReportView({
             </ReactMarkdown>
           </div>
         ) : activeTab === 'logs' ? (
-          <ProcessLogsTable logs={internalProcesses} className="overflow-x-auto" />
+          <ProcessLogsTable logs={internalProcesses} standalone={true} />
         ) : activeTab === 'dataset' && reportId ? (
           <DatasetTable reportId={reportId} />
         ) : activeTab === 'dataset' && !reportId ? (
