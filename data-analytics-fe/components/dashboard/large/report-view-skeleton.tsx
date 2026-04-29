@@ -3,7 +3,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function ReportViewSkeleton() {
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-10 scroll-smooth h-full">
-      <div className="max-w-5xl mx-auto backdrop-blur-md bg-slate-900/50 border border-slate-800 rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col gap-6">
+      <div
+        className="max-w-5xl mx-auto backdrop-blur-md border rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col gap-6"
+        style={{
+          background: "var(--glass-bg)",
+          borderColor: "var(--surface-border)",
+        }}
+      >
         <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-primary to-transparent opacity-50"></div>
         <Skeleton className="h-6 w-32 mb-4" />
 

@@ -71,33 +71,20 @@ export function ProjectCard({
             >
               <defs>
                 <linearGradient id="gradient" x1="0%" x2="0%" y1="0%" y2="100%">
-                  <stop
-                    offset="0%"
-                    style={{ stopColor: "currentColor", stopOpacity: 1 }}
-                  ></stop>
-                  <stop
-                    offset="100%"
-                    style={{ stopColor: "currentColor", stopOpacity: 0 }}
-                  ></stop>
+                  <stop offset="0%" style={{ stopColor: "currentColor", stopOpacity: 1 }}></stop>
+                  <stop offset="100%" style={{ stopColor: "currentColor", stopOpacity: 0 }}></stop>
                 </linearGradient>
               </defs>
-              <path
-                d="M0,50 C40,10 60,90 100,50 C140,10 160,90 200,50 V100 H0 Z"
-                fill="url(#gradient)"
-                opacity="0.2"
-              ></path>
-              <path
-                d="M0,50 C40,10 60,90 100,50 C140,10 160,90 200,50"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              ></path>
+              <path d="M0,50 C40,10 60,90 100,50 C140,10 160,90 200,50 V100 H0 Z" fill="url(#gradient)" opacity="0.2"></path>
+              <path d="M0,50 C40,10 60,90 100,50 C140,10 160,90 200,50" fill="none" stroke="currentColor" strokeWidth="2"></path>
             </svg>
           </>
         );
       case "donut":
         return (
-          <div className="size-24 rounded-full border-12 border-[#222f49] border-t-blue-500 border-r-blue-400 rotate-45"></div>
+          <div className="size-24 rounded-full border-12 border-t-blue-500 border-r-blue-400 rotate-45"
+            style={{ borderColor: "var(--surface-border)", borderTopColor: "rgb(59 130 246)", borderRightColor: "rgb(96 165 250)" }}
+          ></div>
         );
       case "log":
         return (
@@ -123,52 +110,62 @@ export function ProjectCard({
       case "Failed":
         return "group-hover:text-red-500";
       default:
-        return "group-hover:text-white";
+        return "";
     }
   };
 
-  const getBorderClass = () => {
+  const getBorderHoverClass = () => {
     switch (status) {
-      case "Completed":
-        return "hover:border-primary/50";
-      case "Processing":
-        return "hover:border-amber-500/50";
-      case "Failed":
-        return "hover:border-red-500/50";
-      default:
-        return "hover:border-[#314368]";
+      case "Completed": return "hover:border-primary/50";
+      case "Processing": return "hover:border-amber-500/50";
+      case "Failed":     return "hover:border-red-500/50";
+      default:           return "";
     }
   };
 
-  const getBgClass = () => {
-    if (type === 'error') return "bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 to-[#101622]";
-    return "bg-[#101622]";
-  }
+  const getThumbnailBg = () => {
+    if (type === "error") return undefined; // handled via style
+    return undefined;
+  };
 
   return (
     <div
       onClick={onClick}
-      className={`group flex flex-col bg-[#1e293b] rounded-2xl border border-[#314368] transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 overflow-hidden ${onClick ? 'cursor-pointer' : ''} ${getBorderClass()}`}
+      className={`group flex flex-col rounded-2xl border transition-all hover:-translate-y-1 hover:shadow-xl overflow-hidden ${onClick ? "cursor-pointer" : ""} ${getBorderHoverClass()}`}
+      style={{
+        background: "var(--surface-card)",
+        borderColor: "var(--surface-border)",
+      }}
     >
       {/* Thumbnail Area */}
-      <div className={`h-40 w-full relative p-4 flex items-center justify-center overflow-hidden ${getBgClass()}`}>
+      <div
+        className="h-40 w-full relative p-4 flex items-center justify-center overflow-hidden"
+        style={{
+          background: type === "error"
+            ? "radial-gradient(ellipse at center, rgba(127,29,29,0.2), var(--surface-deep))"
+            : "var(--surface-deep)",
+        }}
+      >
         {getVisual()}
         <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
           <Dropdown
             trigger={
-              <div className="p-1 rounded-full hover:bg-black/20 text-slate-600 hover:text-white transition-colors">
+              <div
+                className="p-1 rounded-full transition-colors"
+                style={{ color: "var(--text-muted)" }}
+              >
                 <HiDotsHorizontal size={20} />
               </div>
             }
             items={[
               {
                 label: "Rename",
-                onClick: onRename || (() => { }),
+                onClick: onRename || (() => {}),
                 icon: <MdEdit className="text-lg" />,
               },
               {
                 label: "Delete",
-                onClick: onDelete || (() => { }),
+                onClick: onDelete || (() => {}),
                 icon: <MdDelete className="text-lg" />,
                 className: "text-red-400 hover:text-red-300 hover:bg-red-500/10",
               },
@@ -181,11 +178,12 @@ export function ProjectCard({
       <div className="p-5 flex flex-col gap-3 flex-1">
         <div>
           <h4
-            className={`text-white font-bold text-lg leading-tight transition-colors ${getHoverClass()}`}
+            className={`font-bold text-lg leading-tight transition-colors ${getHoverClass()}`}
+            style={{ color: "var(--text-primary)" }}
           >
             {title}
           </h4>
-          <p className="text-slate-400 text-xs mt-1 font-mono truncate">
+          <p className="text-xs mt-1 font-mono truncate" style={{ color: "var(--text-secondary)" }}>
             {filename}
           </p>
         </div>

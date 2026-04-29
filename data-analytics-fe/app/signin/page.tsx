@@ -24,13 +24,16 @@ export default async function LoginPage() {
         <GlassCard>
           {/* Header Section */}
           <div className="flex flex-col items-center text-center gap-2">
-            <div className="flex items-center justify-center size-12 rounded-xl bg-linear-to-br from-slate-800 to-slate-900 border border-white/5 mb-4 shadow-lg">
+            <div 
+              className="flex items-center justify-center size-12 rounded-xl border mb-4 shadow-lg"
+              style={{ background: "var(--surface-inset)", borderColor: "var(--surface-border)" }}
+            >
               <span className="text-primary"><BsClipboardDataFill className="w-6 h-6" /></span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
               Analytics AI
             </h1>
-            <p className="text-slate-400 text-sm font-medium mt-1">
+            <p className="text-sm font-medium mt-1" style={{ color: "var(--text-secondary)" }}>
               Welcome Back! Please sign in to your account.
             </p>
           </div>
@@ -39,11 +42,12 @@ export default async function LoginPage() {
 
           {/* Footer / Sign Up */}
           <div className="text-center">
-            <p className="text-slate-400 text-sm">
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               New to the network?
               <Link
                 href="/signup"
-                className="text-white font-semibold hover:text-primary transition-colors ml-1 relative inline-block group/link"
+                className="font-semibold hover:text-primary transition-colors ml-1 relative inline-block group/link"
+                style={{ color: "var(--text-primary)" }}
               >
                 Sign Up
                 <span className="absolute bottom-0 left-0 w-0 h-px bg-primary transition-all duration-300 group-hover/link:w-full"></span>

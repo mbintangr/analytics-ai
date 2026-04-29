@@ -19,9 +19,39 @@ export function ActionButton({
   const variants = {
     primary:
       "px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98] w-full sm:w-auto whitespace-nowrap",
-    secondary: "px-6 py-3 bg-[#1e293b] text-slate-400 hover:text-white hover:bg-white/5",
-    icon: "p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg",
+    secondary: "px-6 py-3 font-medium text-sm",
+    icon: "p-2 rounded-lg",
   };
+
+  if (variant === "secondary") {
+    return (
+      <button
+        className={cn(baseStyles, variants[variant], className)}
+        style={{
+          background: "var(--surface-card)",
+          color: "var(--text-secondary)",
+          border: "1px solid var(--surface-border)",
+        }}
+        {...props}
+      >
+        {icon && <span className="material-symbols-outlined text-[20px]">{icon}</span>}
+        {children}
+      </button>
+    );
+  }
+
+  if (variant === "icon") {
+    return (
+      <button
+        className={cn(baseStyles, variants[variant], className)}
+        style={{ color: "var(--text-secondary)" }}
+        {...props}
+      >
+        {icon && <span className="material-symbols-outlined text-[20px]">{icon}</span>}
+        {children}
+      </button>
+    );
+  }
 
   return (
     <button

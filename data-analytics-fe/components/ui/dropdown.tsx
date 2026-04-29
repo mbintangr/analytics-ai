@@ -48,9 +48,13 @@ export function Dropdown({ trigger, items, align = "right" }: DropdownProps) {
       {isOpen && (
         <div
           className={cn(
-            "absolute z-10 mt-2 w-48 rounded-xl bg-[#1e293b] border border-[#314368] shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100",
+            "absolute z-10 mt-2 w-48 rounded-xl border shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100",
             align === "right" ? "right-0" : "left-0"
           )}
+          style={{
+            background: "var(--surface-card)",
+            borderColor: "var(--surface-border)",
+          }}
         >
           <div className="py-1">
             {items.map((item, index) => (
@@ -62,10 +66,10 @@ export function Dropdown({ trigger, items, align = "right" }: DropdownProps) {
                   setIsOpen(false);
                 }}
                 className={cn(
-                  "flex items-center w-full px-4 py-2.5 text-sm text-left transition-colors cursor-pointer",
-                  "hover:bg-slate-700/50",
-                  item.className || "text-slate-300 hover:text-white"
+                  "flex items-center w-full px-4 py-2.5 text-sm text-left transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5",
+                  item.className || ""
                 )}
+                style={!item.className ? { color: "var(--text-secondary)" } : undefined}
               >
                 {item.icon && <span className="mr-2 text-lg">{item.icon}</span>}
                 {item.label}

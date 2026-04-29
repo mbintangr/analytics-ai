@@ -52,7 +52,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden text-slate-900 dark:text-white">
+    <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
       <main className="flex-1 h-full overflow-y-auto relative">
         <div className="w-full h-full flex flex-col items-center justify-center p-6 md:p-10">

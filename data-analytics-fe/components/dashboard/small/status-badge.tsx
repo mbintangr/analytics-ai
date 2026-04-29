@@ -41,7 +41,7 @@ export function StatusBadge({ status, duration, className }: StatusBadgeProps) {
         <div className={cn("size-1.5 rounded-full", style.dot, style.animate)}></div>
         <span className="text-xs font-semibold">{status}</span>
       </div>
-      <span className="text-slate-500 text-xs font-medium">{duration || "--"}</span>
+      <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{duration || "--"}</span>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import { Dropdown } from "../../ui/dropdown";
 export type ViewMode = "grid" | "list";
 
 export interface Project {
-  id: string; // Changed to string to match Prisma ID
+  id: string;
   title: string;
   filename: string;
   status: "Completed" | "Processing" | "Failed";
@@ -34,16 +34,22 @@ export function ProjectGrid({ projects, onProjectClick, onDelete, onRename }: Pr
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">All Projects</h2>
-        <div className="flex gap-2 bg-[#1e293b] p-1 rounded-xl border border-[#314368]">
+        <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+          All Projects
+        </h2>
+        <div
+          className="flex gap-2 p-1 rounded-xl border"
+          style={{ background: "var(--surface-card)", borderColor: "var(--surface-border)" }}
+        >
           <button
             onClick={() => setViewMode("grid")}
             className={cn(
               "p-2 rounded-lg transition-all hover:cursor-pointer",
               viewMode === "grid"
                 ? "bg-primary text-white shadow-lg shadow-blue-900/20"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
+                : "hover:bg-black/5 dark:hover:bg-white/5"
             )}
+            style={viewMode !== "grid" ? { color: "var(--text-secondary)" } : undefined}
           >
             <FiGrid size={20} />
           </button>
@@ -53,8 +59,9 @@ export function ProjectGrid({ projects, onProjectClick, onDelete, onRename }: Pr
               "p-2 rounded-lg transition-all hover:cursor-pointer",
               viewMode === "list"
                 ? "bg-primary text-white shadow-lg shadow-blue-900/20"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
+                : "hover:bg-black/5 dark:hover:bg-white/5"
             )}
+            style={viewMode !== "list" ? { color: "var(--text-secondary)" } : undefined}
           >
             <FaListUl size={20} />
           </button>
@@ -83,20 +90,26 @@ export function ProjectGrid({ projects, onProjectClick, onDelete, onRename }: Pr
             <div
               key={project.id}
               onClick={() => onProjectClick?.(project)}
-              className="flex items-center justify-between p-4 rounded-xl bg-[#1e293b] border border-[#314368] hover:border-primary/50 transition-all group hover:cursor-pointer"
+              className="flex items-center justify-between p-4 rounded-xl border hover:border-primary/50 transition-all group hover:cursor-pointer"
+              style={{
+                background: "var(--surface-card)",
+                borderColor: "var(--surface-border)",
+              }}
             >
               <div className="flex items-center gap-4">
-                <div className="size-10 rounded-lg bg-background-dark flex items-center justify-center border border-[#314368]">
-                  {/* Mini icon based on type fallback */}
-                  <span className="material-symbols-outlined text-slate-500 text-[20px]">
-                    {project.type === 'error' ? 'warning' : 'analytics'}
+                <div
+                  className="size-10 rounded-lg flex items-center justify-center border"
+                  style={{ background: "var(--surface-inset)", borderColor: "var(--surface-border)" }}
+                >
+                  <span className="material-symbols-outlined text-[20px]" style={{ color: "var(--text-muted)" }}>
+                    {project.type === "error" ? "warning" : "analytics"}
                   </span>
                 </div>
                 <div>
-                  <h4 className="text-white font-bold text-base group-hover:text-primary transition-colors">
+                  <h4 className="font-bold text-base group-hover:text-primary transition-colors" style={{ color: "var(--text-primary)" }}>
                     {project.title}
                   </h4>
-                  <p className="text-slate-400 text-xs font-mono">
+                  <p className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
                     {project.filename}
                   </p>
                 </div>
@@ -107,26 +120,26 @@ export function ProjectGrid({ projects, onProjectClick, onDelete, onRename }: Pr
                 <div className="mr-2 relative" onClick={(e) => e.stopPropagation()}>
                   <Dropdown
                     trigger={
-                      <div className="p-2 rounded-full hover:bg-white/10 text-slate-500 hover:text-white transition-colors cursor-pointer">
+                      <div className="p-2 rounded-full transition-colors cursor-pointer" style={{ color: "var(--text-muted)" }}>
                         <HiDotsHorizontal size={20} />
                       </div>
                     }
                     items={[
                       {
                         label: "Rename",
-                        onClick: onRename ? () => onRename(project) : () => { },
+                        onClick: onRename ? () => onRename(project) : () => {},
                         icon: <span className="material-symbols-outlined text-lg">edit</span>,
                       },
                       {
                         label: "Delete",
-                        onClick: onDelete ? () => onDelete(project) : () => { },
+                        onClick: onDelete ? () => onDelete(project) : () => {},
                         icon: <span className="material-symbols-outlined text-lg">delete</span>,
                         className: "text-red-400 hover:text-red-300 hover:bg-red-500/10",
                       },
                     ]}
                   />
                 </div>
-                <FaChevronRight className="text-slate-600 text-[20px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <FaChevronRight className="text-[20px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-muted)" }} />
               </div>
             </div>
           ))}

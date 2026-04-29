@@ -17,8 +17,6 @@ interface ProcessingViewProps {
 
 type StepStatus = "pending" | "processing" | "completed";
 
-
-
 import { useRouter } from "next/navigation";
 
 export function ProcessingView({ className, status = "PROCESSING", filename, createdAt, reportId }: ProcessingViewProps & { reportId?: string }) {
@@ -63,7 +61,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
 
         if (data.processes) {
           setLogs((prev) => {
-            // Only update if length changed to avoid too many re-renders or simple check
             if (prev.length !== data.processes.length) return data.processes;
             return prev;
           });
@@ -97,7 +94,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     }
   };
 
-
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
@@ -106,7 +102,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
   };
 
   const getStepStatus = (stepName: string): StepStatus => {
-    // Current valid agents according to backend/database
     const order = [
       "data_preprocessing_agent",
       "eda_agent",
@@ -125,8 +120,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     const currentIndex = order.indexOf(currentAgent);
     const stepIndex = order.indexOf(stepName);
 
-    // If currentAgent is business_questions_agent, it's defunct but might still be emitted.
-    // We treat it as finished preprocessing but not yet eda.
     if (currentAgent === "business_questions_agent") {
       if (stepName === "data_preprocessing_agent") return "completed";
       return "pending";
@@ -145,7 +138,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     const currentAgent = status.replace("PROCESSING ", "").trim();
 
     if (currentAgent === "data_preprocessing_agent" || status === "PROCESSING") return "15%";
-    if (currentAgent === "business_questions_agent") return "35%"; // Between nodes
+    if (currentAgent === "business_questions_agent") return "35%";
     if (currentAgent === "eda_agent") return "50%";
     if (currentAgent === "data_explainer_agent") return "85%";
 
@@ -153,16 +146,20 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
   };
 
   return (
-    <div className={cn("relative flex h-full w-full flex-col overflow-hidden bg-background-cyber text-white font-display selection:bg-primary selection:text-white", className)}>
-      {/* Cyber Grid Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 h-full w-full opacity-50"
+    <div className={cn("relative flex h-full w-full flex-col overflow-hidden font-display selection:bg-primary selection:text-white", className)}
+      style={{ background: "var(--surface-cyber)", color: "var(--text-primary)" }}
+    >
+      {/* Grid Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 h-full w-full opacity-40"
         style={{
-          backgroundImage: `linear-gradient(rgba(13, 89, 242, 0.03) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(13, 89, 242, 0.03) 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(rgba(13, 89, 242, 0.05) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(13, 89, 242, 0.05) 1px, transparent 1px)`,
           backgroundSize: '60px 60px'
         }}
       >
-        <div className="absolute inset-0 bg-linear-to-t from-background-cyber via-transparent to-transparent"></div>
+        <div
+          className="absolute inset-0 bg-linear-to-t from-[color:var(--surface-cyber)] via-transparent to-transparent"
+        ></div>
       </div>
 
       <div className="relative flex h-full w-full flex-col z-10">
@@ -170,15 +167,20 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
 
           {/* Header Info Card */}
           <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-4">
-            <div className="flex flex-col gap-1 backdrop-blur-md bg-slate-900/40 border border-glass-border p-4 rounded-xl shadow-2xl min-w-fit">
+            <div
+              className="flex flex-col gap-1 backdrop-blur-md border p-4 rounded-xl shadow-2xl min-w-fit"
+              style={{ background: "var(--glass-bg)", borderColor: "var(--glass-border)" }}
+            >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Filename</span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Elapsed</span>
+                <span className="text-[10px] uppercase tracking-widest font-mono" style={{ color: "var(--text-secondary)" }}>Filename</span>
+                <span className="text-[10px] uppercase tracking-widest font-mono" style={{ color: "var(--text-secondary)" }}>Elapsed</span>
               </div>
               <div className="flex items-center justify-between gap-6">
                 <div className="flex items-center gap-2">
                   <TbFileDescription className="text-primary text-xl" />
-                  <span className="text-sm font-semibold text-white truncate max-w-[200px]" title={filename}>{filename || "Unknown"}</span>
+                  <span className="text-sm font-semibold truncate max-w-[200px]" style={{ color: "var(--text-primary)" }} title={filename}>
+                    {filename || "Unknown"}
+                  </span>
                 </div>
                 <div className="font-mono text-emerald-400 font-bold text-lg">
                   {formatTime(elapsedTime)}
@@ -190,7 +192,8 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowLogs(!showLogs)}
-                className="px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm"
+                className="px-4 py-2 rounded-full text-xs font-mono uppercase tracking-wider text-primary transition-all backdrop-blur-sm border hover:opacity-80"
+                style={{ background: "var(--glass-bg)", borderColor: "var(--surface-border)" }}
               >
                 {showLogs ? "Hide System Logs" : "Show System Logs"}
               </button>
@@ -208,11 +211,19 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
           </div>
 
           {/* Main Content Area */}
-          <main className="flex-1 relative overflow-hidden flex flex-col items-center justify-center p-12 bg-background-cyber/50">
-
+          <main
+            className="flex-1 relative overflow-hidden flex flex-col items-center justify-center p-12"
+            style={{ background: "rgba(2,6,23,0.5)" }}
+          >
             {showLogs ? (
-              <div className="w-full max-w-5xl h-[60vh] backdrop-blur-xl bg-slate-950/80 border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
-                <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+              <div
+                className="w-full max-w-5xl h-[60vh] backdrop-blur-xl border rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300"
+                style={{ background: "var(--surface-deep)", borderColor: "var(--surface-border)" }}
+              >
+                <div
+                  className="p-4 border-b flex justify-between items-center"
+                  style={{ borderColor: "var(--surface-border)", background: "var(--glass-bg)" }}
+                >
                   <h3 className="font-mono text-sm text-primary uppercase tracking-wider">System Execution Logs</h3>
                   <div className="flex gap-2">
                     <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20">
@@ -226,45 +237,37 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                   </div>
                 </div>
 
-
                 <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} />
-
               </div>
             ) : (
               /* Progress Nodes */
               <div className="w-full max-w-5xl relative flex items-center justify-between h-48 animate-in fade-in zoom-in duration-500">
                 {/* Connector Lines */}
-                <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-slate-800 -translate-y-1/2 z-0 w-full mx-12"></div>
+                <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 z-0 w-full mx-12" style={{ background: "var(--surface-border)" }}></div>
                 {/* Active Beam Line */}
                 <div
                   className="absolute left-0 top-1/2 h-0.5 bg-linear-to-r from-secondary via-secondary to-primary -translate-y-1/2 z-0 mx-12 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
                   style={{ width: getProgressWidth() }}
                 ></div>
 
-                {/* Node 1: Preprocessing */}
                 <StatusNode
                   title="Data Preprocessing"
                   status={getStepStatus("data_preprocessing_agent")}
                   icon={<FaCheck />}
                   detail="Understanding, Assessing, and Cleaning"
                 />
-
-                {/* Node 2: EDA */}
                 <StatusNode
                   title="Exploratory Analysis"
                   status={getStepStatus("eda_agent")}
                   icon={<MdQueryStats />}
                   detail="Performing Exploratory Data Analysis"
                 />
-
-                {/* Node 3: Explanation */}
                 <StatusNode
                   title="Data Explanation"
                   status={getStepStatus("data_explainer_agent")}
                   icon={<TbFileDescription />}
                   detail="Generating Final Report"
                 />
-
               </div>
             )}
           </main>
@@ -278,16 +281,18 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
   if (status === "completed") {
     return (
       <div className="relative z-10 flex flex-col items-center group">
-        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-4 border-background-cyber ring-2 ring-emerald-500/50 transition-transform hover:scale-110">
-          <span className="text-background-cyber text-3xl font-bold">{icon}</span>
+        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] border-4 ring-2 ring-emerald-500/50 transition-transform hover:scale-110"
+          style={{ borderColor: "var(--surface-cyber)" }}
+        >
+          <span className="text-3xl font-bold" style={{ color: "var(--surface-cyber)" }}>{icon}</span>
         </div>
         <div className="absolute top-20 flex flex-col items-center w-48 text-center">
           <span className="text-emerald-400 font-mono text-xs uppercase tracking-wider mb-1">Completed</span>
-          <h3 className="text-white font-semibold">{title}</h3>
+          <h3 className="font-semibold text-white">{title}</h3>
           {detail && <p className="text-slate-500 text-xs mt-1">{detail}</p>}
         </div>
       </div>
-    )
+    );
   }
 
   if (status === "processing") {
@@ -296,14 +301,20 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
         <div className="relative w-20 h-20 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full bg-primary opacity-20 animate-ping"></div>
           <div className="absolute inset-0 rounded-full bg-primary opacity-40 animate-pulse-glow"></div>
-          <div className="relative w-16 h-16 rounded-full bg-background-cyber border-2 border-primary flex items-center justify-center shadow-[0_0_30px_rgba(13,89,242,0.6)] z-20">
+          <div
+            className="relative w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_30px_rgba(13,89,242,0.6)] z-20"
+            style={{ background: "var(--surface-cyber)" }}
+          >
             <span className="text-primary text-3xl animate-pulse">{icon}</span>
           </div>
         </div>
         <div className="absolute top-24 flex flex-col items-center w-56 text-center">
           <span className="text-primary font-mono text-xs uppercase tracking-wider mb-1 animate-pulse">In Progress</span>
           <h3 className="text-white font-bold text-base">{title}</h3>
-          <div className="mt-2 bg-slate-900/80 border border-primary/30 rounded px-3 py-2 text-left w-full max-w-[200px]">
+          <div
+            className="mt-2 border border-primary/30 rounded px-3 py-2 text-left w-full max-w-[200px]"
+            style={{ background: "var(--glass-bg)" }}
+          >
             <div className="flex items-center gap-2 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
               <span className="text-sm text-primary/80 font-mono">Working...</span>
@@ -312,19 +323,22 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Pending
   return (
     <div className="relative z-10 flex flex-col items-center group">
-      <div className="w-14 h-14 rounded-full bg-background-cyber border-2 border-slate-700 flex items-center justify-center transition-colors group-hover:border-slate-500">
-        <span className="text-slate-600 text-2xl group-hover:text-slate-400">{icon}</span>
+      <div
+        className="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-colors group-hover:border-slate-500"
+        style={{ background: "var(--surface-cyber)", borderColor: "var(--surface-border)" }}
+      >
+        <span className="text-2xl text-slate-600 group-hover:text-slate-400">{icon}</span>
       </div>
       <div className="absolute top-20 flex flex-col items-center w-48 text-center">
         <span className="text-slate-600 font-mono text-xs uppercase tracking-wider mb-1">Pending</span>
         <h3 className="text-slate-400 font-medium">{title}</h3>
       </div>
     </div>
-  )
+  );
 }

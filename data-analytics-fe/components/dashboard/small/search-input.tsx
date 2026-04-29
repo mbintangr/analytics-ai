@@ -8,10 +8,6 @@ export function SearchInput() {
   const [isPending, startTransition] = useTransition();
   const [value, setValue] = useState(searchParams.get("search") || "");
 
-  // Simple debounce implementation inside effect or use a hook if available
-  // Let's use a simple timeout for now to avoid creating extra files if not needed, 
-  // or I can create a hook. I'll stick to simple timeout for this component.
-
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
@@ -22,10 +18,6 @@ export function SearchInput() {
       }
 
       const queryString = params.toString();
-      const targetPath = pathname === "/projects" ? "/projects" : "/projects";
-
-      // If we are on dashboard and type, go to projects. 
-      // If we are on projects, replace.
 
       startTransition(() => {
         if (pathname !== "/projects" && value) {
@@ -41,11 +33,19 @@ export function SearchInput() {
 
   return (
     <div className="relative group flex-1 xl:w-80">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+      <div
+        className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors group-focus-within:text-primary"
+        style={{ color: "var(--text-muted)" }}
+      >
         <span className="material-symbols-outlined text-[20px]">search</span>
       </div>
       <input
-        className="block w-full pl-10 pr-3 py-3 border-none rounded-xl bg-[#222f49] text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 text-sm transition-all shadow-sm outline-none"
+        className="block w-full pl-10 pr-3 py-3 border-none rounded-xl text-sm transition-all shadow-sm outline-none focus:ring-2 focus:ring-primary/50"
+        style={{
+          background: "var(--surface-card)",
+          color: "var(--text-primary)",
+          border: "1px solid var(--surface-border)",
+        }}
         placeholder="Search projects, files..."
         type="text"
         value={value}

@@ -27,6 +27,15 @@ export default async function ReportPage({
   let filename = "Unknown File";
   let createdAt: Date | undefined = undefined;
   let isError = false;
+  let metadata: {
+    title: string;
+    createdAt: Date;
+    finishedAt: Date | null;
+    businessQuestions: string | null;
+    modelName: string | null;
+    durationSeconds: number | null;
+    totalTokens: number | null;
+  } | null = null;
 
   // 1. Fetch status from DB
   try {
@@ -35,13 +44,28 @@ export default async function ReportPage({
       select: {
         status: true,
         originalFileName: true,
-        createdAt: true
+        title: true,
+        createdAt: true,
+        finishedAt: true,
+        businessQuestions: true,
+        modelName: true,
+        durationSeconds: true,
+        totalTokens: true,
       }
     });
     if (analysisSession) {
       status = analysisSession.status;
       filename = analysisSession.originalFileName;
       createdAt = analysisSession.createdAt;
+      metadata = {
+        title: analysisSession.title,
+        createdAt: analysisSession.createdAt,
+        finishedAt: analysisSession.finishedAt ?? null,
+        businessQuestions: analysisSession.businessQuestions ?? null,
+        modelName: analysisSession.modelName ?? null,
+        durationSeconds: analysisSession.durationSeconds ?? null,
+        totalTokens: analysisSession.totalTokens ?? null,
+      };
 
       if (status === "FAILED" || status === "CANCELLED") {
         redirect("/");
@@ -81,7 +105,7 @@ export default async function ReportPage({
   // }
 
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden text-slate-900 dark:text-white">
+    <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
       <main className="flex-1 h-full flex relative overflow-hidden">
         {/* Main Report Area */}
@@ -94,6 +118,7 @@ export default async function ReportPage({
             filename={filename}
             createdAt={createdAt}
             reportId={id}
+            metadata={metadata}
           />
         </div>
 

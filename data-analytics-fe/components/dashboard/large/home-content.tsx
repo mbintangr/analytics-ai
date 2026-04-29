@@ -19,7 +19,6 @@ export function HomeContent({ userName, userId, recentProjects: initialProjects 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
 
-  // Rename state
   const [projectToRename, setProjectToRename] = useState<Project | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
@@ -85,19 +84,23 @@ export function HomeContent({ userName, userId, recentProjects: initialProjects 
 
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-5xl text-center pb-20 pt-10">
-      <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+      <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight" style={{ color: "var(--text-primary)" }}>
         Welcome, <span className="text-primary">{userName || "User"}!</span>
       </h1>
-      <p className="text-slate-400 text-lg md:text-xl mb-12 max-w-2xl font-medium">
+      <p className="text-lg md:text-xl mb-12 max-w-2xl font-medium" style={{ color: "var(--text-secondary)" }}>
         Ready to start your data journey? Click to upload your dataset below.
       </p>
 
-      {/* Styled Search Bar for Upload */}
+      {/* Upload trigger bar */}
       <div
         onClick={() => setIsModalOpen(true)}
-        className="w-full max-w-2xl bg-[#1e293b] border border-[#314368] rounded-full pl-6 pr-2 py-2 flex items-center justify-between cursor-pointer hover:border-primary transition-all shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_25px_rgba(13,89,242,0.15)] group mb-16"
+        className="w-full max-w-2xl rounded-full pl-6 pr-2 py-2 flex items-center justify-between cursor-pointer hover:border-primary transition-all shadow-md hover:shadow-primary/10 group mb-16 border"
+        style={{
+          background: "var(--surface-card)",
+          borderColor: "var(--surface-border)",
+        }}
       >
-        <span className="text-slate-400 group-hover:text-slate-300 transition-colors text-lg text-left truncate">
+        <span className="text-lg text-left truncate transition-colors" style={{ color: "var(--text-secondary)" }}>
           Upload a dataset (.csv)...
         </span>
         <div className="bg-primary text-white p-3 rounded-full group-hover:bg-blue-600 transition-transform shrink-0">
@@ -114,7 +117,9 @@ export function HomeContent({ userName, userId, recentProjects: initialProjects 
       {/* Project Cards */}
       {projects.length > 0 && (
         <div className="w-full text-left">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Recent Projects</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: "var(--text-primary)" }}>
+            Recent Projects
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
             {projects.map((project) => (
               <ProjectCard

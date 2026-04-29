@@ -11,40 +11,31 @@ interface UploadViewProps {
 }
 
 const AVAILABLE_MODELS = [
-  { value: "openrouter/xiaomi/mimo-v2-flash", label: "Mimo V2 Flash (Xiaomi)" },
-  { value: "openrouter/openai/gpt-oss-120b:free", label: "GPT OSS 120B (Free)" },
-  { value: "openrouter/openai/gpt-oss-20b:free", label: "GPT OSS 20B (Free)" },
-  { value: "openrouter/nvidia/nemotron-3-nano-30b-a3b:free", label: "Nemotron 3 Nano 30B (Free)" },
-  { value: "openrouter/qwen/qwen3-coder:free", label: "Qwen3 Coder (Free)" },
-  { value: "openrouter/arcee-ai/trinity-large-preview:free", label: "Trinity Large Preview (Free)" },
-  { value: "nvidia_nim/openai/gpt-oss-120b", label: "GPT OSS 120B (NVIDIA NIM)" },
+  { value: "openrouter/xiaomi/mimo-v2-flash", label: "Mimo V2 Flash" },
+  { value: "nvidia_nim/openai/gpt-oss-120b", label: "GPT OSS 120B" },
 ];
 
-// RFC 4180-compliant CSV row parser — handles quoted fields that may contain commas.
 function parseCsvRow(row: string): string[] {
   const fields: string[] = [];
   let i = 0;
   while (i < row.length) {
     if (row[i] === '"') {
-      // Quoted field
       let field = '';
-      i++; // skip opening quote
+      i++;
       while (i < row.length) {
         if (row[i] === '"' && row[i + 1] === '"') {
-          // Escaped double-quote
           field += '"';
           i += 2;
         } else if (row[i] === '"') {
-          i++; // skip closing quote
+          i++;
           break;
         } else {
           field += row[i++];
         }
       }
       fields.push(field);
-      if (row[i] === ',') i++; // skip comma separator
+      if (row[i] === ',') i++;
     } else {
-      // Unquoted field
       const end = row.indexOf(',', i);
       if (end === -1) {
         fields.push(row.slice(i));
@@ -63,6 +54,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
   const [isParquet, setIsParquet] = useState(false);
+  const [unsupportedFile, setUnsupportedFile] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [loadingText, setLoadingText] = useState("Processing...");
   const [progress, setProgress] = useState(0);
@@ -84,7 +76,11 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
     f.name.toLowerCase().endsWith(".parquet");
 
   const processFile = (f: File) => {
-    if (!isValidFile(f)) return;
+    if (!isValidFile(f)) {
+      setUnsupportedFile(f.name);
+      return;
+    }
+    setUnsupportedFile(null);
     setFile(f);
     if (isParquetFile(f)) {
       setIsParquet(true);
@@ -102,7 +98,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
         const colCount = headerRow.length;
         const dataRows = lines.slice(1, 6).map((line) => {
           const cells = parseCsvRow(line);
-          // Clamp to header length so extra cells from unquoted commas don't shift columns
           while (cells.length < colCount) cells.push("");
           return cells.slice(0, colCount);
         });
@@ -116,9 +111,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && isValidFile(droppedFile)) {
-      processFile(droppedFile);
-    }
+    if (droppedFile) processFile(droppedFile);
   };
 
   const reset = () => {
@@ -126,6 +119,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
     setHeaders([]);
     setRows([]);
     setIsParquet(false);
+    setUnsupportedFile(null);
     setBusinessQuestions("");
     setSelectedModel(AVAILABLE_MODELS[0].value);
     setIsUploading(false);
@@ -144,7 +138,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
 
   const handleGenerateInsights = async () => {
     if (!file) return;
-
     if (!userId) {
       console.error("User not logged in");
       return;
@@ -156,7 +149,7 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
       setProgress(0);
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
-      const CHUNK_SIZE = 20 * 1024 * 1024; // 20MB chunks
+      const CHUNK_SIZE = 20 * 1024 * 1024;
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
       const initFormData = new FormData();
@@ -220,35 +213,74 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden w-full bg-[#101623] text-left">
-      <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-[#314368] scrollbar-track-transparent">
+    <div className="flex flex-col flex-1 overflow-hidden w-full text-left" style={{ background: "var(--surface-base)" }}>
+      <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
         {!file ? (
           <div className="mb-8 flex flex-col gap-4">
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
-              className="group relative flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-[#314368] bg-[#182234]/30 px-6 py-10 transition-colors hover:border-primary hover:bg-[#182234]/50 hover:cursor-pointer"
+              className={`group relative flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed px-6 py-10 transition-colors hover:cursor-pointer ${
+                unsupportedFile
+                  ? "border-red-500/60 bg-red-500/5 hover:border-red-400 hover:bg-red-500/10"
+                  : "hover:border-primary"
+              }`}
+              style={
+                !unsupportedFile
+                  ? { borderColor: "var(--surface-border)", background: "var(--surface-inset)" }
+                  : undefined
+              }
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-                <IoMdCloudUpload className="text-4xl text-primary" />
+              <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
+                unsupportedFile ? "bg-red-500/20" : "bg-primary/20"
+              }`}>
+                {unsupportedFile
+                  ? <span className="material-symbols-outlined text-4xl text-red-400">block</span>
+                  : <IoMdCloudUpload className="text-4xl text-primary" />}
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-white">Drop file here or click to upload</p>
-                <p className="mt-1 text-sm font-normal text-[#90a4cb]">Supported formats: .csv, .parquet</p>
+                <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Drop file here or click to upload</p>
+                <p className="mt-1 text-sm font-normal" style={{ color: "var(--text-secondary)" }}>Supported formats: .csv, .parquet</p>
               </div>
-              <button className="cursor-pointer mt-2 flex h-9 items-center justify-center rounded-lg bg-[#182234] px-4 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-[#314368] transition-all hover:bg-[#222f49] hover:ring-white/20">
+              <button
+                className="cursor-pointer mt-2 flex h-9 items-center justify-center rounded-lg px-4 text-sm font-bold shadow-sm ring-1 ring-inset ring-[color:var(--surface-border)] transition-all"
+                style={{
+                  background: "var(--surface-inset)",
+                  color: "var(--text-primary)",
+                }}
+              >
                 Browse Files
               </button>
             </div>
+
+            {unsupportedFile && (
+              <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <span className="material-symbols-outlined text-red-400 text-lg mt-0.5 shrink-0">error</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-red-300">Unsupported file type</p>
+                  <p className="text-xs text-red-400/80 mt-0.5 truncate">
+                    <span className="font-mono">{unsupportedFile}</span> is not supported. Please upload a <span className="font-semibold">.csv</span> or <span className="font-semibold">.parquet</span> file.
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setUnsupportedFile(null); }}
+                  className="shrink-0 text-red-400/60 hover:text-red-300 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mb-8">
             <div
               className={cn(
-                "group flex items-center justify-between p-4 mb-6 rounded-xl border border-dashed border-[#314368] bg-[#182234]/30 transition-all",
-                !isUploading && "hover:border-primary hover:bg-[#182234]/50 hover:cursor-pointer"
+                "group flex items-center justify-between p-4 mb-6 rounded-xl border border-dashed transition-all",
+                !isUploading && "hover:border-primary hover:cursor-pointer"
               )}
+              style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}
               onClick={() => !isUploading && fileInputRef.current?.click()}
             >
               <div className="flex items-center gap-4">
@@ -256,48 +288,48 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
                   <IoMdCloudUpload className="text-xl text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white">{file.name}</p>
-                  <p className="text-xs text-[#90a4cb]">Click to change file</p>
+                  <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{file.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Click to change file</p>
                 </div>
               </div>
               {!isUploading && (
-                <span className="material-symbols-outlined text-[#90a4cb] group-hover:text-white transition-colors">
+                <span className="material-symbols-outlined transition-colors" style={{ color: "var(--text-secondary)" }}>
                   edit
                 </span>
               )}
             </div>
 
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold leading-tight tracking-tight text-white">
+              <h3 className="text-lg font-bold leading-tight tracking-tight" style={{ color: "var(--text-primary)" }}>
                 Data Preview (Top 5 Rows)
               </h3>
             </div>
 
             {isParquet ? (
-              <div className="flex items-center gap-3 rounded-lg border border-[#314368] bg-[#182234]/30 px-4 py-4">
-                <span className="material-symbols-outlined text-[#90a4cb] text-xl">info</span>
-                <p className="text-sm text-[#90a4cb]">
+              <div className="flex items-center gap-3 rounded-lg border px-4 py-4" style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}>
+                <span className="material-symbols-outlined text-xl" style={{ color: "var(--text-secondary)" }}>info</span>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                   Preview is not available for Parquet files. The file will be processed directly by the analysis engine.
                 </p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-lg border border-[#314368] bg-[#101623]">
+              <div className="overflow-hidden rounded-lg border" style={{ borderColor: "var(--surface-border)", background: "var(--surface-base)" }}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-[#182234]">
+                    <thead style={{ background: "var(--surface-inset)" }}>
                       <tr>
                         {headers.map((header, i) => (
-                          <th key={i} className="whitespace-nowrap px-4 py-3 text-sm font-medium text-[#90a4cb]">
+                          <th key={i} className="whitespace-nowrap px-4 py-3 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
                             {header}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#314368]">
+                    <tbody style={{ borderColor: "var(--surface-border)" }}>
                       {rows.map((row, i) => (
-                        <tr key={i} className="group hover:bg-white/5">
+                        <tr key={i} className="border-t" style={{ borderColor: "var(--surface-border)" }}>
                           {row.map((cell, j) => (
-                            <td key={j} className="whitespace-nowrap px-4 py-3 text-sm text-white">
+                            <td key={j} className="whitespace-nowrap px-4 py-3 text-sm" style={{ color: "var(--text-primary)" }}>
                               {cell}
                             </td>
                           ))}
@@ -310,10 +342,10 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
             )}
 
             <div className="mt-6">
-              <h3 className="text-lg font-bold leading-tight tracking-tight text-white mb-3">
+              <h3 className="text-lg font-bold leading-tight tracking-tight mb-3" style={{ color: "var(--text-primary)" }}>
                 Business Questions
               </h3>
-              <p className="text-sm text-[#90a4cb] mb-3">
+              <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
                 What specific questions do you want answered from your data? This helps the AI focus its analysis.
               </p>
               <textarea
@@ -321,27 +353,40 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
                 onChange={(e) => setBusinessQuestions(e.target.value)}
                 disabled={isUploading}
                 placeholder="e.g. What are the top revenue drivers? Which customer segments are growing fastest? Are there any seasonal trends?"
-                className="w-full rounded-lg border border-[#314368] bg-[#182234]/30 px-4 py-3 text-sm text-white placeholder-[#5a6f94] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors resize-none disabled:opacity-50"
+                className="w-full rounded-lg border px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors resize-none disabled:opacity-50"
+                style={{
+                  background: "var(--surface-inset)",
+                  borderColor: "var(--surface-border)",
+                  color: "var(--text-primary)",
+                }}
                 rows={4}
               />
             </div>
 
             <div className="mt-6">
-              <h3 className="text-lg font-bold leading-tight tracking-tight text-white mb-3">
+              <h3 className="text-lg font-bold leading-tight tracking-tight mb-3" style={{ color: "var(--text-primary)" }}>
                 AI Model
               </h3>
-              <p className="text-sm text-[#90a4cb] mb-3">
+              <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
                 Choose the AI model to use for analysis.
               </p>
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
                 disabled={isUploading}
-                className="w-full rounded-lg border border-[#314368] bg-[#182234]/30 px-4 py-3 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 appearance-none cursor-pointer"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2390a4cb' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25em 1.25em' }}
+                className="w-full rounded-lg border px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 appearance-none cursor-pointer"
+                style={{
+                  background: "var(--surface-inset)",
+                  borderColor: "var(--surface-border)",
+                  color: "var(--text-primary)",
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2390a4cb' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: "right 0.75rem center",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "1.25em 1.25em",
+                }}
               >
                 {AVAILABLE_MODELS.map((model) => (
-                  <option key={model.value} value={model.value} className="bg-[#182234] text-white">
+                  <option key={model.value} value={model.value}>
                     {model.label}
                   </option>
                 ))}
@@ -359,11 +404,22 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#314368] bg-[#101623] px-6 py-4 mt-auto">
+      <div
+        className="flex flex-wrap items-center justify-end gap-3 border-t px-6 py-4 mt-auto"
+        style={{
+          borderColor: "var(--surface-border)",
+          background: "var(--surface-base)",
+        }}
+      >
         <button
           onClick={handleCancel}
           disabled={isUploading}
-          className="cursor-pointer flex h-10 items-center justify-center rounded-lg border border-[#314368] bg-transparent px-6 text-sm font-bold text-white transition-colors hover:bg-[#182234] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          className="cursor-pointer flex h-10 items-center justify-center rounded-lg border px-6 text-sm font-bold transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            borderColor: "var(--surface-border)",
+            color: "var(--text-primary)",
+            background: "transparent",
+          }}
         >
           Cancel
         </button>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/lib/theme-context";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -19,12 +20,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${spaceGrotesk.variable}`} data-theme="dark">
       <head>
+        {/* Prevent theme flash: apply stored theme before first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+          }}
+        />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-display bg-background-light dark:bg-background-dark min-h-screen">
-        {children}
+      <body className="font-display min-h-screen bg-[color:var(--surface-base)] text-[color:var(--text-primary)]">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

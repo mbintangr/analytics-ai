@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { IoChevronBack, IoChevronForward, IoChevronDown, IoDocumentOutline } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoChevronDown, IoDocumentOutline, IoDownloadOutline } from "react-icons/io5";
 
 interface DatasetTableProps {
   reportId: string;
@@ -41,8 +41,8 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 50;
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Step 1: Fetch available tables
   useEffect(() => {
     if (!reportId) return;
     const fetchTables = async () => {
@@ -54,7 +54,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
         const result = await res.json();
         const list: TableInfo[] = result.tables ?? [];
         setTables(list);
-        // Default to raw_data if available, else first table
         const defaultTable = list.find((t) => t.name === "raw_data") ?? list[0];
         if (defaultTable) setSelectedTable(defaultTable.name);
       } catch (err) {
@@ -66,7 +65,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
     fetchTables();
   }, [reportId]);
 
-  // Step 2: Fetch paginated data when table or page changes
   useEffect(() => {
     if (!reportId || tablesLoading || !selectedTable) return;
 
@@ -102,128 +100,199 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
     setIsSelectOpen(false);
   };
 
+  const handleExportCsv = async () => {
+    if (!reportId || !selectedTable || isExporting) return;
+    setIsExporting(true);
+    try {
+      const res = await fetch(
+        `/api/report/${reportId}/data?page=1&pageSize=100000&table=${encodeURIComponent(selectedTable)}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch data for export");
+      const result: PaginatedData = await res.json();
+
+      const escape = (v: unknown): string => {
+        const str = v == null ? "" : String(v);
+        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const csvLines = [
+        result.columns.map(escape).join(","),
+        ...result.rows.map((row) => row.map(escape).join(",")),
+      ];
+      const csvContent = csvLines.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedTable}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("CSV export failed:", err);
+      alert("CSV export failed. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-300">
 
-      {/* Header: Title + Dataset Selector */}
+      {/* Header: Title + Dataset Selector + Export */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">Dataset Preview</h3>
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Dataset Preview</h3>
           {activeTableInfo?.description && (
-            <p className="text-xs text-slate-500 mt-0.5 max-w-md">{activeTableInfo.description}</p>
+            <p className="text-xs mt-0.5 max-w-md" style={{ color: "var(--text-muted)" }}>{activeTableInfo.description}</p>
           )}
         </div>
 
-        {/* Dataset select box */}
-        <div className="relative shrink-0">
-          {tablesLoading ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-400 text-sm">
-              <div className="w-3.5 h-3.5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
-              <span>Loading datasets…</span>
-            </div>
-          ) : tablesError ? (
-            <div className="px-3 py-2 rounded-lg border border-red-800/60 bg-red-900/20 text-red-400 text-xs">
-              {tablesError}
-            </div>
-          ) : tables.length === 0 ? (
-            <div className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-500 text-sm">
-              No datasets available
-            </div>
-          ) : (
-            <>
-              <button
-                id="dataset-selector-btn"
-                onClick={() => setIsSelectOpen((o) => !o)}
-                className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg border border-slate-700 bg-slate-900 hover:border-primary/60 hover:bg-slate-800 transition-all text-sm text-white min-w-[180px] justify-between"
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Dataset select box */}
+          <div className="relative">
+            {tablesLoading ? (
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm"
+                style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)", color: "var(--text-secondary)" }}
               >
-                <div className="flex items-center gap-2">
-                  <IoDocumentOutline size={15} className="text-primary shrink-0" />
-                  <span className="truncate max-w-[140px]">
-                    {activeTableInfo?.label ?? selectedTable}
-                  </span>
-                </div>
-                <IoChevronDown
-                  size={14}
-                  className={`text-slate-400 shrink-0 transition-transform duration-200 ${isSelectOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {/* Dropdown */}
-              {isSelectOpen && (
-                <>
-                  {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setIsSelectOpen(false)}
+                <div className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--text-muted)" }} />
+                <span>Loading datasets…</span>
+              </div>
+            ) : tablesError ? (
+              <div className="px-3 py-2 rounded-lg border border-red-800/60 bg-red-900/20 text-red-400 text-xs">
+                {tablesError}
+              </div>
+            ) : tables.length === 0 ? (
+              <div
+                className="px-3 py-2 rounded-lg border text-sm"
+                style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)", color: "var(--text-muted)" }}
+              >
+                No datasets available
+              </div>
+            ) : (
+              <>
+                <button
+                  id="dataset-selector-btn"
+                  onClick={() => setIsSelectOpen((o) => !o)}
+                  className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg border hover:border-primary/60 transition-all text-sm min-w-[180px] justify-between"
+                  style={{
+                    borderColor: "var(--surface-border)",
+                    background: "var(--surface-inset)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <IoDocumentOutline size={15} className="text-primary shrink-0" />
+                    <span className="truncate max-w-[140px]">
+                      {activeTableInfo?.label ?? selectedTable}
+                    </span>
+                  </div>
+                  <IoChevronDown
+                    size={14}
+                    className={`shrink-0 transition-transform duration-200 ${isSelectOpen ? "rotate-180" : ""}`}
+                    style={{ color: "var(--text-secondary)" }}
                   />
-                  <div className="absolute right-0 top-full mt-1.5 z-20 w-72 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black/50 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-slate-800">
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-                        Available Datasets
-                      </p>
-                    </div>
-                    <ul className="py-1 max-h-64 overflow-y-auto">
-                      {tables.map((t) => (
-                        <li key={t.name}>
-                          <button
-                            id={`dataset-option-${t.name}`}
-                            onClick={() => handleSelectTable(t.name)}
-                            className={`w-full text-left px-3 py-2.5 hover:bg-slate-800 transition-colors flex items-start gap-3 group ${
-                              t.name === selectedTable ? "bg-primary/10" : ""
-                            }`}
-                          >
-                            <IoDocumentOutline
-                              size={15}
-                              className={`mt-0.5 shrink-0 ${t.name === selectedTable ? "text-primary" : "text-slate-500 group-hover:text-slate-300"}`}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <span
-                                  className={`text-sm font-medium truncate ${
-                                    t.name === selectedTable ? "text-primary" : "text-slate-200"
-                                  }`}
-                                >
-                                  {t.label}
-                                </span>
-                                {t.sizeBytes > 0 && (
-                                  <span className="text-xs text-slate-600 shrink-0">
-                                    {formatBytes(t.sizeBytes)}
+                </button>
+
+                {/* Dropdown */}
+                {isSelectOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsSelectOpen(false)} />
+                    <div
+                      className="absolute right-0 top-full mt-1.5 z-20 w-72 rounded-xl border shadow-2xl overflow-hidden"
+                      style={{
+                        background: "var(--surface-card)",
+                        borderColor: "var(--surface-border)",
+                      }}
+                    >
+                      <div className="px-3 py-2 border-b" style={{ borderColor: "var(--surface-border)" }}>
+                        <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                          Available Datasets
+                        </p>
+                      </div>
+                      <ul className="py-1 max-h-64 overflow-y-auto">
+                        {tables.map((t) => (
+                          <li key={t.name}>
+                            <button
+                              id={`dataset-option-${t.name}`}
+                              onClick={() => handleSelectTable(t.name)}
+                              className={`w-full text-left px-3 py-2.5 transition-colors flex items-start gap-3 group ${
+                                t.name === selectedTable ? "bg-primary/10" : ""
+                              }`}
+                              style={t.name !== selectedTable ? { color: "var(--text-secondary)" } : undefined}
+                              onMouseEnter={(e) => { if (t.name !== selectedTable) e.currentTarget.style.background = "var(--surface-inset)"; }}
+                              onMouseLeave={(e) => { if (t.name !== selectedTable) e.currentTarget.style.background = ""; }}
+                            >
+                              <IoDocumentOutline
+                                size={15}
+                                className={`mt-0.5 shrink-0 ${t.name === selectedTable ? "text-primary" : ""}`}
+                                style={t.name !== selectedTable ? { color: "var(--text-muted)" } : undefined}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={`text-sm font-medium truncate ${t.name === selectedTable ? "text-primary" : ""}`}
+                                    style={t.name !== selectedTable ? { color: "var(--text-primary)" } : undefined}
+                                  >
+                                    {t.label}
                                   </span>
+                                  {t.sizeBytes > 0 && (
+                                    <span className="text-xs shrink-0" style={{ color: "var(--text-muted)" }}>
+                                      {formatBytes(t.sizeBytes)}
+                                    </span>
+                                  )}
+                                </div>
+                                {t.description && (
+                                  <p className="text-xs mt-0.5 leading-relaxed line-clamp-2" style={{ color: "var(--text-muted)" }}>
+                                    {t.description}
+                                  </p>
                                 )}
                               </div>
-                              {t.description && (
-                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">
-                                  {t.description}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Export CSV Button */}
+          <button
+            onClick={handleExportCsv}
+            disabled={isExporting || !data || data.rows.length === 0}
+            className="flex items-center gap-2 pl-3 pr-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-white"
+            style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
+          >
+            {isExporting ? (
+              <div className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--text-muted)" }} />
+            ) : (
+              <IoDownloadOutline size={15} />
+            )}
+            {isExporting ? "Exporting…" : "Export CSV"}
+          </button>
         </div>
       </div>
 
       {/* Stats bar */}
       {data && !loading && (
-        <div className="flex items-center gap-3 mb-3 text-xs text-slate-500">
+        <div className="flex items-center gap-3 mb-3 text-xs" style={{ color: "var(--text-muted)" }}>
           <span>
-            <strong className="text-slate-300">{data.totalCount.toLocaleString()}</strong> total rows
+            <strong style={{ color: "var(--text-secondary)" }}>{data.totalCount.toLocaleString()}</strong> total rows
           </span>
           <span>·</span>
           <span>
-            <strong className="text-slate-300">{data.columns.length}</strong> columns
+            <strong style={{ color: "var(--text-secondary)" }}>{data.columns.length}</strong> columns
           </span>
           {activeTableInfo?.sizeBytes ? (
             <>
               <span>·</span>
               <span>
-                <strong className="text-slate-300">{formatBytes(activeTableInfo.sizeBytes)}</strong>
+                <strong style={{ color: "var(--text-secondary)" }}>{formatBytes(activeTableInfo.sizeBytes)}</strong>
               </span>
             </>
           ) : null}
@@ -231,10 +300,13 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
       )}
 
       {/* Table Area */}
-      <div className="flex-1 overflow-auto border border-slate-800 rounded-xl bg-slate-900/50 backdrop-blur-sm min-h-[400px]">
+      <div
+        className="flex-1 overflow-auto rounded-xl backdrop-blur-sm min-h-[400px] border"
+        style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-48 sm:h-full">
-            <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+            <div className="flex flex-col items-center justify-center gap-3" style={{ color: "var(--text-secondary)" }}>
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span className="text-sm">Loading dataset…</span>
             </div>
@@ -244,40 +316,57 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
             {error}
           </div>
         ) : !data || data.rows.length === 0 ? (
-          <div className="flex items-center justify-center h-48 sm:h-full text-slate-400 text-sm">
+          <div className="flex items-center justify-center h-48 sm:h-full text-sm" style={{ color: "var(--text-secondary)" }}>
             No data found.
           </div>
         ) : (
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950 sticky top-0 z-10 border-b border-slate-800 shadow-sm">
+          <table className="w-full text-left text-sm" style={{ color: "var(--text-secondary)" }}>
+            <thead
+              className="sticky top-0 z-10 border-b shadow-sm"
+              style={{ background: "var(--surface-deep)", borderColor: "var(--surface-border)" }}
+            >
               <tr>
-                <th className="px-4 py-3 font-medium text-slate-400 w-16 text-center border-r border-slate-800/50">
+                <th
+                  className="px-4 py-3 font-medium w-16 text-center border-r"
+                  style={{ color: "var(--text-muted)", borderColor: "var(--surface-border)" }}
+                >
                   #
                 </th>
                 {data.columns.map((col, index) => (
                   <th
                     key={index}
-                    className="px-4 py-3 font-medium whitespace-nowrap border-r border-slate-800/50 hover:bg-slate-800/50 transition-colors"
+                    className="px-4 py-3 font-medium whitespace-nowrap border-r transition-colors"
+                    style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
                   >
                     {col}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody>
               {data.rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-2 text-center text-slate-500 font-mono text-xs border-r border-slate-800/50">
+                <tr
+                  key={rowIndex}
+                  className="border-b transition-colors"
+                  style={{ borderColor: "var(--surface-border)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-card)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+                >
+                  <td
+                    className="px-4 py-2 text-center font-mono text-xs border-r"
+                    style={{ color: "var(--text-muted)", borderColor: "var(--surface-border)" }}
+                  >
                     {(page - 1) * pageSize + rowIndex + 1}
                   </td>
                   {row.map((cell, cellIndex) => (
                     <td
                       key={cellIndex}
-                      className="px-4 py-2 whitespace-nowrap max-w-[200px] truncate border-r border-slate-800/50"
+                      className="px-4 py-2 whitespace-nowrap max-w-[200px] truncate border-r"
+                      style={{ borderColor: "var(--surface-border)" }}
                       title={cell != null ? String(cell) : ""}
                     >
                       {cell == null ? (
-                        <span className="text-slate-600 italic">null</span>
+                        <span className="italic" style={{ color: "var(--text-muted)" }}>null</span>
                       ) : typeof cell === "boolean" ? (
                         cell ? "true" : "false"
                       ) : (
@@ -294,13 +383,13 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
 
       {/* Pagination Controls */}
       <div className="flex items-center justify-between mt-4">
-        <div className="text-sm text-slate-400">
+        <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
           {data ? (
             <span>
               Showing{" "}
-              <strong className="text-white">{(page - 1) * pageSize + 1}</strong> to{" "}
-              <strong className="text-white">{Math.min(page * pageSize, data.totalCount)}</strong>{" "}
-              of <strong className="text-white">{data.totalCount}</strong> entries
+              <strong style={{ color: "var(--text-primary)" }}>{(page - 1) * pageSize + 1}</strong> to{" "}
+              <strong style={{ color: "var(--text-primary)" }}>{Math.min(page * pageSize, data.totalCount)}</strong>{" "}
+              of <strong style={{ color: "var(--text-primary)" }}>{data.totalCount}</strong> entries
             </span>
           ) : (
             <span>Loading entries…</span>
@@ -311,20 +400,25 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1 || loading}
-            className="flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center p-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/10 hover:border-primary/50"
+            style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
             aria-label="Previous page"
           >
             <IoChevronBack size={18} />
           </button>
 
-          <div className="flex items-center justify-center px-4 rounded-lg bg-slate-900 border border-slate-800 text-sm font-medium">
+          <div
+            className="flex items-center justify-center px-4 rounded-lg border text-sm font-medium"
+            style={{ background: "var(--surface-inset)", borderColor: "var(--surface-border)", color: "var(--text-primary)" }}
+          >
             Page {page} {totalPages > 0 && `of ${totalPages}`}
           </div>
 
           <button
             onClick={() => setPage((p) => (totalPages && p < totalPages ? p + 1 : p))}
             disabled={(!totalPages || page === totalPages) || loading}
-            className="flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center p-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/10 hover:border-primary/50"
+            style={{ borderColor: "var(--surface-border)", color: "var(--text-secondary)" }}
             aria-label="Next page"
           >
             <IoChevronForward size={18} />

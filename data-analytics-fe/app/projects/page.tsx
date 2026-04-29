@@ -8,7 +8,7 @@ import { ProjectsContent } from "@/components/dashboard/large/projects-content";
 
 export default async function ProjectsPage() {
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden text-slate-900 dark:text-white">
+    <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
       <main className="flex-1 h-full overflow-y-auto relative">
         <div className="max-w-[1440px] mx-auto p-6 md:p-10 flex flex-col gap-8">

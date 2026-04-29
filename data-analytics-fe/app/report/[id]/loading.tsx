@@ -4,7 +4,7 @@ import { TableOfContentsSkeleton } from "@/components/dashboard/large/table-of-c
 
 export default function Loading() {
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden text-slate-900 dark:text-white">
+    <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
       <main className="flex-1 h-full flex relative overflow-hidden">
         {/* Main Report Area */}

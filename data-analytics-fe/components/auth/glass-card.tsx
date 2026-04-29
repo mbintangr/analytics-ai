@@ -8,9 +8,11 @@ interface GlassCardProps {
 export function GlassCard({ children, className = "" }: GlassCardProps) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl p-8 sm:p-10 flex flex-col gap-8
-        bg-[rgba(16,22,35,0.75)] backdrop-blur-2xl border border-white/10
-        shadow-[0_8px_32px_rgba(0,0,0,0.5)] ${className}`}
+      className={`relative overflow-hidden rounded-2xl p-8 sm:p-10 flex flex-col gap-8 backdrop-blur-2xl shadow-2xl ${className}`}
+      style={{
+        background: "var(--glass-bg)",
+        border: "1px solid var(--glass-border)",
+      }}
     >
       {/* Subtle top highlight line */}
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>

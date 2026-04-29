@@ -16,21 +16,24 @@ export default async function SignupPage() {
   }
 
   return (
-    <main className="bg-background-dark font-display min-h-screen flex items-center justify-center p-4 relative overflow-hidden text-white selection:bg-primary selection:text-background-dark">
+    <main className="font-display min-h-screen flex items-center justify-center p-4 relative overflow-hidden selection:bg-primary selection:text-white" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <BackgroundEffects />
 
       {/* Main Glassmorphic Card */}
-      <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-12 gap-0 border border-white/10 rounded-xl bg-[#183422]/20 backdrop-blur-2xl shadow-2xl overflow-hidden relative z-10 ring-1 ring-white/5">
+      <div 
+        className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-12 gap-0 border rounded-xl backdrop-blur-2xl shadow-2xl overflow-hidden relative z-10"
+        style={{ background: "var(--glass-bg)", borderColor: "var(--glass-border)" }}
+      >
 
         {/* Left Panel: Info & Value Props (Sidebar) */}
         <SignupSidebar />
 
         {/* Right Panel: Registration Form */}
-        <div className="col-span-1 lg:col-span-7 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative bg-linear-to-br from-transparent to-black/40">
+        <div className="col-span-1 lg:col-span-7 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative">
           {/* Mobile Header (only visible on small screens) */}
           <div className="lg:hidden mb-8 flex items-center gap-2">
             <span className="text-primary"><BsClipboardDataFill /></span>
-            <span className="font-bold text-lg tracking-tight text-white">Analytics AI</span>
+            <span className="font-bold text-lg tracking-tight" style={{ color: "var(--text-primary)" }}>Analytics AI</span>
           </div>
 
           <SignupForm />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { MdEdit } from "react-icons/md";
 
@@ -15,7 +15,7 @@ export function RenameModal({ isOpen, onClose, onRename, currentName }: RenameMo
   const [newName, setNewName] = useState(currentName);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setNewName(currentName);
   }, [currentName, isOpen]);
 
@@ -42,21 +42,32 @@ export function RenameModal({ isOpen, onClose, onRename, currentName }: RenameMo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-background-dark/80 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 backdrop-blur-md transition-opacity"
+        style={{ background: "rgba(0,0,0,0.5)" }}
         onClick={onClose}
       />
-      <div className="relative z-20 w-full max-w-md overflow-hidden rounded-xl border border-[#314368] bg-[#101623] shadow-2xl animate-in fade-in zoom-in duration-300">
-        <div className="flex items-center justify-between border-b border-[#314368] bg-[#101623] px-6 py-4">
+      <div
+        className="relative z-20 w-full max-w-md overflow-hidden rounded-xl border shadow-2xl animate-in fade-in zoom-in duration-300"
+        style={{
+          background: "var(--surface-base)",
+          borderColor: "var(--surface-border)",
+        }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-6 py-4"
+          style={{ borderColor: "var(--surface-border)" }}
+        >
           <div className="flex items-center gap-3">
             <MdEdit className="text-primary text-xl" />
-            <h2 className="text-xl font-bold leading-tight tracking-tight text-white">
+            <h2 className="text-xl font-bold leading-tight tracking-tight" style={{ color: "var(--text-primary)" }}>
               Rename Project
             </h2>
           </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="cursor-pointer group flex h-8 w-8 items-center justify-center rounded-full text-[#90a4cb] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+            className="cursor-pointer group flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-50"
+            style={{ color: "var(--text-secondary)" }}
           >
             <IoClose className="text-xl" />
           </button>
@@ -64,7 +75,7 @@ export function RenameModal({ isOpen, onClose, onRename, currentName }: RenameMo
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="mb-6">
-            <label htmlFor="projectName" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="projectName" className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
               Project Name
             </label>
             <input
@@ -72,7 +83,12 @@ export function RenameModal({ isOpen, onClose, onRename, currentName }: RenameMo
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="w-full rounded-lg border border-[#314368] bg-[#182234] px-4 py-2.5 text-white placeholder-slate-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full rounded-lg border px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              style={{
+                background: "var(--surface-inset)",
+                borderColor: "var(--surface-border)",
+                color: "var(--text-primary)",
+              }}
               placeholder="Enter project name"
               autoFocus
             />
@@ -83,7 +99,8 @@ export function RenameModal({ isOpen, onClose, onRename, currentName }: RenameMo
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium text-sm"
+              className="cursor-pointer px-4 py-2 rounded-lg transition-colors font-medium text-sm hover:bg-black/5 dark:hover:bg-white/5"
+              style={{ color: "var(--text-secondary)" }}
             >
               Cancel
             </button>

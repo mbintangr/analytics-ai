@@ -20,12 +20,19 @@ export function NavLink({ href, icon, label }: NavLinkProps) {
       className={cn(
         "flex items-center gap-3 px-3 py-3 rounded-xl transition-colors",
         isActive
-          ? "bg-primary/20 text-white"
-          : "text-slate-400 hover:text-white hover:bg-white/5"
+          ? "bg-primary/20 text-primary"
+          : "hover:bg-black/5 dark:hover:bg-white/5"
       )}
+      style={
+        isActive
+          ? undefined
+          : { color: "var(--text-secondary)" }
+      }
     >
       <span className="material-symbols-outlined text-[24px]">{icon}</span>
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-sm font-medium" style={isActive ? undefined : { color: "var(--text-secondary)" }}>
+        {label}
+      </span>
     </Link>
   );
 }

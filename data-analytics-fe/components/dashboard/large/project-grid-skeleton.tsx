@@ -12,14 +12,22 @@ export function ProjectGridSkeleton() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="p-5 rounded-2xl border border-slate-800 bg-background-dark/50 flex flex-col gap-4 h-[180px]">
-            <div className="flex justify-between items-start">
-              <div className="size-10 rounded-xl bg-slate-800/50 animate-pulse" />
-              <Skeleton className="h-6 w-20 rounded-full" />
-            </div>
-            <div className="space-y-2 mt-auto">
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+          <div
+            key={i}
+            className="p-5 rounded-2xl border flex flex-col gap-4 h-[220px]"
+            style={{
+              background: "var(--surface-card)",
+              borderColor: "var(--surface-border)",
+            }}
+          >
+            {/* Thumbnail placeholder */}
+            <div
+              className="h-28 w-full rounded-xl animate-pulse"
+              style={{ background: "var(--surface-deep)" }}
+            />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-3.5 w-1/2" />
             </div>
           </div>
         ))}

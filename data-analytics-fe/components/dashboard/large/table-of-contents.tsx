@@ -57,22 +57,34 @@ export function TableOfContents({ content }: TableOfContentsProps) {
   if (headings.length === 0) return null;
 
   return (
-    <aside className="hidden xl:block w-72 p-8 border-l border-slate-800 bg-slate-900/20 md:px-6 md:py-10 backdrop-blur-sm h-full overflow-y-auto">
+    <aside
+      className="hidden xl:block w-72 p-8 border-l md:px-6 md:py-10 backdrop-blur-sm h-full overflow-y-auto"
+      style={{
+        borderColor: "var(--surface-border)",
+        background: "var(--surface-inset)",
+      }}
+    >
       <div className="sticky">
-        <h4 className="font-bold text-slate-500 uppercase tracking-widest mb-6">Contents</h4>
-        <nav className="flex flex-col gap-4 border-l border-slate-800 relative">
+        <h4 className="font-bold uppercase tracking-widest mb-6" style={{ color: "var(--text-muted)" }}>
+          Contents
+        </h4>
+        <nav
+          className="flex flex-col gap-4 border-l relative"
+          style={{ borderColor: "var(--surface-border)" }}
+        >
           {headings.map((heading) => (
             <a
               key={heading.id}
               href={`#${heading.id}`}
               className={cn(
-                "pl-4 text-sm transition-colors block border-l-2 -ml-[2px]",
+                "text-sm transition-colors block border-l-2 -ml-[2px]",
                 activeId === heading.id
                   ? "border-primary text-primary font-medium"
-                  : "border-transparent text-slate-400 hover:text-white"
+                  : "border-transparent hover:text-primary"
               )}
               style={{
-                paddingLeft: `${heading.level === 3 ? "2rem" : "1rem"}`,
+                color: activeId !== heading.id ? "var(--text-secondary)" : undefined,
+                paddingLeft: heading.level === 3 ? "2rem" : "1rem",
               }}
               onClick={(e) => {
                 e.preventDefault();

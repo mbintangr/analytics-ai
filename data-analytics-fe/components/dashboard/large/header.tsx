@@ -18,10 +18,10 @@ export function Header({ userName, userId, hideNewAnalysis }: HeaderProps) {
     <>
       <header className="flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-center">
         <div className="flex flex-col gap-1">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
             Welcome, <span className="text-primary">{userName || "User"}!</span>
           </h2>
-          <p className="text-slate-400 text-base">
+          <p className="text-base" style={{ color: "var(--text-secondary)" }}>
             Here's an overview of your recent data analysis sessions.
           </p>
         </div>

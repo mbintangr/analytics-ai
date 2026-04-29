@@ -1,36 +1,92 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-:root {
-  --background: #f5f6f8;
-  --foreground: #0f172a;
-  --primary: #0d59f2;
+/* ─── Semantic Color Tokens ─────────────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  --surface-base:       #101622;
+  --surface-sidebar:    #0d1424;
+  --surface-card:       #1e293b;
+  --surface-inset:      #182234;
+  --surface-deep:       #0d1628;
+  --surface-cyber:      #020617;
+  --surface-border:     #314368;
+  --surface-border-soft:#253352;
+
+  --text-primary:       #ffffff;
+  --text-secondary:     #90a4cb;
+  --text-muted:         #64748b;
+  --text-faint:         #334155;
+
+  --glass-bg:           rgba(16, 22, 35, 0.7);
+  --glass-border:       rgba(255, 255, 255, 0.1);
+
+  --scrollbar-track:    #101622;
+  --scrollbar-thumb:    #1e293b;
 }
 
+[data-theme="light"] {
+  --surface-base:       #f0f4ff;
+  --surface-sidebar:    #e4ecf9;
+  --surface-card:       #ffffff;
+  --surface-inset:      #eaf0fb;
+  --surface-deep:       #dae5f7;
+  --surface-cyber:      #f0f4ff;
+  --surface-border:     #c3d3ec;
+  --surface-border-soft:#d6e4f5;
+
+  --text-primary:       #0f172a;
+  --text-secondary:     #475569;
+  --text-muted:         #64748b;
+  --text-faint:         #cbd5e1;
+
+  --glass-bg:           rgba(255, 255, 255, 0.75);
+  --glass-border:       rgba(13, 89, 242, 0.12);
+
+  --scrollbar-track:    #e4ecf9;
+  --scrollbar-thumb:    #c3d3ec;
+}
+
+/* ─── Tailwind Theme Extension ───────────────────────────────────────────────── */
+
 @theme inline {
-  --color-background-light: #f5f6f8;
-  --color-background-dark: #101622;
-  /* Cyberpunk additions */
-  --color-background-cyber: #020617;
-  --color-primary: #0d59f2;
-  --color-secondary: #10b981;
-  --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-glass-bg: rgba(16, 22, 35, 0.7);
+  --color-surface-base:       var(--surface-base);
+  --color-surface-sidebar:    var(--surface-sidebar);
+  --color-surface-card:       var(--surface-card);
+  --color-surface-inset:      var(--surface-inset);
+  --color-surface-deep:       var(--surface-deep);
+  --color-surface-cyber:      var(--surface-cyber);
+  --color-surface-border:     var(--surface-border);
+
+  --color-txt-primary:        var(--text-primary);
+  --color-txt-secondary:      var(--text-secondary);
+  --color-txt-muted:          var(--text-muted);
+
+  --color-glass-bg:           var(--glass-bg);
+  --color-glass-border:       var(--glass-border);
+
+  /* Legacy aliases (keep backward compat) */
+  --color-background-light:   #f5f6f8;
+  --color-background-dark:    #101622;
+  --color-background-cyber:   #020617;
+  --color-primary:            #0d59f2;
+  --color-secondary:          #10b981;
 
   --font-display: "Space Grotesk", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono:    "JetBrains Mono", monospace;
 
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-beam: beam 3s linear infinite;
-  --animate-dash: dash 20s linear infinite;
+  --animate-beam:       beam 3s linear infinite;
+  --animate-dash:       dash 20s linear infinite;
 
   @keyframes pulse-glow {
     0%, 100% { box-shadow: 0 0 15px #0d59f2, 0 0 30px rgba(13, 89, 242, 0.5); }
-    50% { box-shadow: 0 0 30px #0d59f2, 0 0 60px rgba(13, 89, 242, 0.8); }
+    50%       { box-shadow: 0 0 30px #0d59f2, 0 0 60px rgba(13, 89, 242, 0.8); }
   }
   @keyframes beam {
-    0% { background-position: 0% 50%; }
+    0%   { background-position: 0% 50%; }
     100% { background-position: 100% 50%; }
   }
   @keyframes dash {
@@ -38,31 +94,19 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #101622;
-    --foreground: #ffffff;
-  }
-}
+/* ─── Base Styles ─────────────────────────────────────────────────────────────── */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--surface-base);
+  color: var(--text-primary);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
   @apply antialiased selection:bg-primary/30 selection:text-white;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #101622;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #0d59f2;
-}
+/* ─── Custom Scrollbar ───────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar        { width: 8px; }
+::-webkit-scrollbar-track  { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb  { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #0d59f2; }

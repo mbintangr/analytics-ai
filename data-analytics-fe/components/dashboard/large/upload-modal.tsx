@@ -27,36 +27,48 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-background-dark/80 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 backdrop-blur-md transition-opacity"
+        style={{ background: "rgba(0,0,0,0.5)" }}
       />
 
       {/* Modal Container */}
-      <div className="relative z-20 flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-xl border border-[#314368] bg-[#101623] shadow-2xl animate-in fade-in zoom-in duration-300">
-
+      <div
+        className="relative z-20 flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-xl border shadow-2xl animate-in fade-in zoom-in duration-300"
+        style={{
+          background: "var(--surface-base)",
+          borderColor: "var(--surface-border)",
+        }}
+      >
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#314368] bg-[#101623] px-6 py-4">
+        <div
+          className="flex items-center justify-between border-b px-6 py-4"
+          style={{
+            borderColor: "var(--surface-border)",
+            background: "var(--surface-base)",
+          }}
+        >
           <div className="flex items-center gap-3">
             <MdOutlineAnalytics className="text-primary text-xl" />
-            <h2 className="text-xl font-bold leading-tight tracking-tight text-white">
+            <h2 className="text-xl font-bold leading-tight tracking-tight" style={{ color: "var(--text-primary)" }}>
               Upload Data
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="cursor-pointer group flex h-8 w-8 items-center justify-center rounded-full text-[#90a4cb] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+            className="cursor-pointer group flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-50"
+            style={{ color: "var(--text-secondary)" }}
           >
             <IoClose className="text-xl" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <UploadView 
-          userId={userId} 
-          onUploadSuccess={handleUploadSuccess} 
-          onCancel={onClose} 
+        <UploadView
+          userId={userId}
+          onUploadSuccess={handleUploadSuccess}
+          onCancel={onClose}
         />
       </div>
     </div>
   );
 }
-

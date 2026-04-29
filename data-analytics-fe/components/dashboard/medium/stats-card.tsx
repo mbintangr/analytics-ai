@@ -5,10 +5,10 @@ interface StatsCardProps {
   label: string;
   value: string | number;
   icon: React.ReactNode;
-  colorClass: string; // e.g., "text-primary" or "text-amber-500"
-  bgClass: string; // e.g., "bg-primary/10" or "bg-amber-500/10"
-  borderHoverClass: string; // e.g., "hover:border-primary/50"
-  textHoverClass: string; // e.g., "group-hover:text-primary"
+  colorClass: string;
+  bgClass: string;
+  borderHoverClass: string;
+  textHoverClass: string;
 }
 
 export function StatsCard({
@@ -23,12 +23,18 @@ export function StatsCard({
   return (
     <div
       className={cn(
-        "p-5 rounded-xl bg-[#1e293b] border border-[#314368] transition-colors group",
+        "p-5 rounded-xl border transition-colors group",
         borderHoverClass
       )}
+      style={{
+        background: "var(--surface-card)",
+        borderColor: "var(--surface-border)",
+      }}
     >
       <div className="flex justify-between items-start mb-2">
-        <p className="text-slate-400 text-sm font-medium">{label}</p>
+        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+          {label}
+        </p>
         <div
           className={cn(
             "p-1.5 rounded-lg text-[20px] flex items-center justify-center",
@@ -42,9 +48,10 @@ export function StatsCard({
       </div>
       <p
         className={cn(
-          "text-3xl font-bold text-white transition-colors",
+          "text-3xl font-bold transition-colors",
           textHoverClass
         )}
+        style={{ color: "var(--text-primary)" }}
       >
         {value}
       </p>

@@ -123,7 +123,7 @@ export function ProjectsContent({ initialStats }: ProjectsContentProps) {
   if (isLoading && projects.length === 0) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="h-8 w-48 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+        <div className="h-8 w-48 rounded animate-pulse" style={{ background: "var(--surface-border)" }} />
         <ProjectGridSkeleton />
       </div>
     );
