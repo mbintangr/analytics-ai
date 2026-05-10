@@ -290,10 +290,9 @@ def plot_tool(
 
 def get_understanding_report_tool(
     tool_context: ToolContext, table_name: str = "raw_data"
-) -> str:
+) -> dict:
     """
-    Get a comprehensive understanding report for a table.
-    Includes row counts, schema description, summary statistics, and sample data.
+    Get an understanding report for the data state.
 
     Args:
         tool_context: The tool context.
@@ -303,34 +302,57 @@ def get_understanding_report_tool(
         print(f"Tool 'get_understanding_report_tool' called for table={table_name}")
         engine = _get_engine(tool_context)
 
-        row_count_res = engine.execute_query(f'SELECT COUNT(*) as row_count FROM "{table_name}"')
-        row_count = row_count_res["rows"][0][0] if row_count_res["rows"] else 0
-
+        # 1. get_data_info equivalent (schema info)
         schema_res = engine.execute_query(f'DESCRIBE "{table_name}"')
-        schema_str = _format_query_result(schema_res)
+        data_info = {}
+        if schema_res.get("rows"):
+            for row in schema_res["rows"]:
+                data_info[row[0]] = {"type": row[1]}
 
+        # 2. get_data_description equivalent
         summarize_res = engine.execute_query(f'SUMMARIZE "{table_name}"')
-        summarize_str = _format_query_result(summarize_res)
+        data_description = {
+            "count": {}, "mean": {}, "std": {}, "min": {}, "25%": {}, "50%": {}, "75%": {}, "max": {}, "unique": {}, "null_percentage": {}
+        }
+        if summarize_res.get("rows"):
+            for row in summarize_res["rows"]:
+                col_name = row[0]
+                data_description["count"][col_name] = row[10]
+                data_description["mean"][col_name] = row[5]
+                data_description["std"][col_name] = row[6]
+                data_description["min"][col_name] = row[2]
+                data_description["25%"][col_name] = row[7]
+                data_description["50%"][col_name] = row[8]
+                data_description["75%"][col_name] = row[9]
+                data_description["max"][col_name] = row[3]
+                data_description["unique"][col_name] = row[4]
+                data_description["null_percentage"][col_name] = row[11]
 
-        sample_res = engine.execute_query(f'SELECT * FROM "{table_name}" USING SAMPLE 5')
-        sample_str = _format_query_result(sample_res)
+        # 3. get_sample_data equivalent
+        sample_res = engine.execute_query(f'SELECT * FROM "{table_name}" USING SAMPLE 3')
+        sample_data = {}
+        if sample_res.get("columns") and sample_res.get("rows"):
+            columns = sample_res["columns"]
+            for idx, row in enumerate(sample_res["rows"]):
+                sample_data[str(idx)] = {col: val for col, val in zip(columns, row)}
 
-        report = f"## Dataset Overview\n- **Table Name**: {table_name}\n- **Number of Rows**: {row_count}\n\n"
-        report += f"## Schema (DESCRIBE)\n{schema_str}\n\n"
-        report += f"## Summary Statistics (SUMMARIZE)\n{summarize_str}\n\n"
-        report += f"## Sample Data (5 rows)\n{sample_str}"
+        understanding_report = {
+            "data_info": data_info,
+            "data_description": data_description,
+            "sample_data": sample_data,
+        }
 
-        return _truncate_output(report, max_chars=15000)
+        import json
+        return json.loads(json.dumps(understanding_report, default=str))
     except Exception as e:
-        return f"Error executing tool 'get_understanding_report_tool': {str(e)}"
+        return {"error": f"Error executing tool 'get_understanding_report_tool': {str(e)}"}
 
 
 def get_assessment_report_tool(
     tool_context: ToolContext, table_name: str = "raw_data"
-) -> str:
+) -> dict:
     """
-    Get a data quality assessment report for a table.
-    Includes duplicate row counts, column summary statistics (nulls, unique counts), and null value queries.
+    Get an assessment report for the data state.
 
     Args:
         tool_context: The tool context.
@@ -340,35 +362,77 @@ def get_assessment_report_tool(
         print(f"Tool 'get_assessment_report_tool' called for table={table_name}")
         engine = _get_engine(tool_context)
 
+        # profile_columns equivalent
+        profile = {}
         schema_res = engine.execute_query(f'DESCRIBE "{table_name}"')
-        columns = [row[0] for row in schema_res.get("rows", [])]
-
-        if not columns:
-            return f"Error: Table '{table_name}' has no columns or does not exist."
-
-        null_selects = [f'COUNT(*) - COUNT("{c}") AS "{c}_nulls"' for c in columns]
-        null_query = f'SELECT {", ".join(null_selects)} FROM "{table_name}"'
-        null_res = engine.execute_query(null_query)
-        null_str = _format_query_result(null_res)
+        columns = [r[0] for r in schema_res.get("rows", [])]
+        dtypes = {r[0]: r[1] for r in schema_res.get("rows", [])}
 
         summarize_res = engine.execute_query(f'SUMMARIZE "{table_name}"')
-        summarize_str = _format_query_result(summarize_res)
+        summarize_dict = {r[0]: r for r in summarize_res.get("rows", [])}
 
-        duplicate_query = f'SELECT (SELECT COUNT(*) FROM "{table_name}") - (SELECT COUNT(*) FROM (SELECT DISTINCT * FROM "{table_name}")) AS duplicate_count'
+        row_count_res = engine.execute_query(f'SELECT COUNT(*) FROM "{table_name}"')
+        total_rows = row_count_res["rows"][0][0] if row_count_res.get("rows") else 0
+
+        for col in columns:
+            s_row = summarize_dict.get(col)
+
+            # get sample values
+            sample_val_res = engine.execute_query(f'SELECT "{col}" FROM "{table_name}" WHERE "{col}" IS NOT NULL LIMIT 5')
+            sample_values = [r[0] for r in sample_val_res.get("rows", [])]
+
+            null_percentage = float(s_row[11]) if s_row and s_row[11] is not None else 0.0
+            null_count = int(total_rows * null_percentage)
+            unique_count = int(s_row[4]) if s_row and s_row[4] is not None else 0
+
+            profile[col] = {
+                "dtype": dtypes[col],
+                "null_count": null_count,
+                "null_ratio": null_percentage,
+                "unique_count": unique_count,
+                "sample_values": sample_values
+            }
+
+            if s_row and s_row[5] is not None:
+                profile[col].update({
+                    "min": s_row[2],
+                    "max": s_row[3],
+                    "mean": s_row[5],
+                    "std": s_row[6]
+                })
+
+        # compute_data_quality_score equivalent
+        total_cells = total_rows * len(columns) if columns else 0
+        total_nulls = sum(profile[c].get("null_count", 0) for c in columns)
+        null_ratio = total_nulls / max(total_cells, 1)
+
         try:
-            duplicate_res = engine.execute_query(duplicate_query)
-            duplicate_str = _format_query_result(duplicate_res)
-        except Exception as dup_e:
-            duplicate_str = f"Could not calculate exact duplicates ({str(dup_e)})."
+            dup_query = f'SELECT (SELECT COUNT(*) FROM "{table_name}") - (SELECT COUNT(*) FROM (SELECT DISTINCT * FROM "{table_name}"))'
+            dup_res = engine.execute_query(dup_query)
+            duplicate_count = dup_res["rows"][0][0] if dup_res.get("rows") else 0
+        except Exception:
+            duplicate_count = 0
 
-        report = f"## Data Quality Assessment for '{table_name}'\n\n"
-        report += f"### Duplicate Rows\n{duplicate_str}\n\n"
-        report += f"### Null Value Counts\n{null_str}\n\n"
-        report += f"### Summary Statistics (Includes approximate unique counts & null percentages)\n{summarize_str}\n"
+        duplicate_ratio = duplicate_count / max(total_rows, 1)
+        outlier_ratio = 0.0
+        score = 1.0 - (0.5 * null_ratio + 0.3 * duplicate_ratio + 0.2 * outlier_ratio)
 
-        return _truncate_output(report, max_chars=15000)
+        data_quality_score = {
+            "null_ratio": null_ratio,
+            "duplicate_ratio": duplicate_ratio,
+            "outlier_ratio": outlier_ratio,
+            "quality_score": round(max(score, 0.0), 3)
+        }
+
+        assessment_report = {
+            "column_profile_report": profile,
+            "data_quality_score": data_quality_score,
+        }
+
+        import json
+        return json.loads(json.dumps(assessment_report, default=str))
     except Exception as e:
-        return f"Error executing tool 'get_assessment_report_tool': {str(e)}"
+        return {"error": f"Error executing tool 'get_assessment_report_tool': {str(e)}"}
 
 
 # ── Kept Helper Tools (not replaceable by SQL) ───────────────────────────────
