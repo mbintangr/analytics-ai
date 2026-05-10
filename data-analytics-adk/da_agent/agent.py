@@ -56,6 +56,8 @@ from .sqlTools import (
     save_report_tool,
     list_output_files_tool,
     exit_loop,
+    get_understanding_report_tool,
+    get_assessment_report_tool,
 )
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -130,11 +132,7 @@ This agent establishes the ONLY authoritative reference for column names and dat
 Focus your understanding on columns that are relevant to answering the business questions above.
 
 MANDATORY EXECUTION RULES:
-1. Run these SQL queries IN ORDER using run_sql_tool against the 'raw_data' table:
-   a. run_sql_tool(sql="SELECT COUNT(*) AS row_count FROM raw_data")
-   b. run_sql_tool(sql="DESCRIBE raw_data")
-   c. run_sql_tool(sql="SELECT * FROM raw_data USING SAMPLE 5")
-   d. run_sql_tool(sql="SUMMARIZE raw_data")
+1. Call get_understanding_report_tool(table_name="raw_data") to get a comprehensive overview of the dataset.
 2. You MUST NOT infer, hypothesize, or suggest anything.
 
 OUTPUT REQUIREMENTS:
@@ -162,7 +160,7 @@ Output ONLY the Markdown report.
     """,
         output_key="data_understanding",
         tools=[
-            run_sql_tool,
+            get_understanding_report_tool,
         ],
         generate_content_config=types.GenerateContentConfig(
             http_options=types.HttpOptions(
@@ -195,14 +193,9 @@ EXECUTION STEPS:
 2. Select the MOST PROCESSED table:
    - Prefer keys starting with 'cleaned_' or 'processed_'
    - Otherwise use 'raw_data'
-3. Run these SQL assessment queries using run_sql_tool:
-   a. Row count: SELECT COUNT(*) FROM table_name
-   b. Column info: DESCRIBE table_name
-   c. Summary statistics: SUMMARIZE table_name
-   d. Null counts per column: SELECT COUNT(*) - COUNT(col1) AS col1_nulls, COUNT(*) - COUNT(col2) AS col2_nulls, ... FROM table_name
-   e. Duplicate check: SELECT COUNT(*) - COUNT(DISTINCT *) AS duplicate_count FROM table_name (if feasible)
-   f. Sample rows: SELECT * FROM table_name USING SAMPLE 5
-   g. For suspicious columns, inspect unique values: SELECT DISTINCT col, COUNT(*) FROM table_name GROUP BY col ORDER BY 2 DESC LIMIT 20
+3. Call get_assessment_report_tool(table_name="your_selected_table") to get a comprehensive quality report (nulls, duplicates, summary stats).
+4. For suspicious columns identified in the report, inspect unique values using run_sql_tool if necessary:
+   run_sql_tool(sql="SELECT DISTINCT col, COUNT(*) FROM table_name GROUP BY col ORDER BY 2 DESC LIMIT 20")
 
 OUTPUT FORMAT (Markdown ONLY):
 
@@ -232,6 +225,7 @@ STRICT CONSTRAINTS:
         output_key="data_assessment",
         tools=[
             get_data_state_list,
+            get_assessment_report_tool,
             run_sql_tool,
         ],
         generate_content_config=types.GenerateContentConfig(

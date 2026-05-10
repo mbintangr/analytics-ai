@@ -287,6 +287,89 @@ def plot_tool(
         return f"Error in plot_tool: {str(e)}"
 
 
+def get_understanding_report_tool(
+    tool_context: ToolContext, table_name: str = "raw_data"
+) -> str:
+    """
+    Get a comprehensive understanding report for a table.
+    Includes row counts, schema description, summary statistics, and sample data.
+
+    Args:
+        tool_context: The tool context.
+        table_name: The name of the table to analyze. Defaults to 'raw_data'.
+    """
+    try:
+        print(f"Tool 'get_understanding_report_tool' called for table={table_name}")
+        engine = _get_engine(tool_context)
+
+        row_count_res = engine.execute_query(f'SELECT COUNT(*) as row_count FROM "{table_name}"')
+        row_count = row_count_res["rows"][0][0] if row_count_res["rows"] else 0
+
+        schema_res = engine.execute_query(f'DESCRIBE "{table_name}"')
+        schema_str = _format_query_result(schema_res)
+
+        summarize_res = engine.execute_query(f'SUMMARIZE "{table_name}"')
+        summarize_str = _format_query_result(summarize_res)
+
+        sample_res = engine.execute_query(f'SELECT * FROM "{table_name}" USING SAMPLE 5')
+        sample_str = _format_query_result(sample_res)
+
+        report = f"## Dataset Overview\n- **Table Name**: {table_name}\n- **Number of Rows**: {row_count}\n\n"
+        report += f"## Schema (DESCRIBE)\n{schema_str}\n\n"
+        report += f"## Summary Statistics (SUMMARIZE)\n{summarize_str}\n\n"
+        report += f"## Sample Data (5 rows)\n{sample_str}"
+
+        return _truncate_output(report, max_chars=15000)
+    except Exception as e:
+        return f"Error executing tool 'get_understanding_report_tool': {str(e)}"
+
+
+def get_assessment_report_tool(
+    tool_context: ToolContext, table_name: str = "raw_data"
+) -> str:
+    """
+    Get a data quality assessment report for a table.
+    Includes duplicate row counts, column summary statistics (nulls, unique counts), and null value queries.
+
+    Args:
+        tool_context: The tool context.
+        table_name: The name of the table to analyze. Defaults to 'raw_data'.
+    """
+    try:
+        print(f"Tool 'get_assessment_report_tool' called for table={table_name}")
+        engine = _get_engine(tool_context)
+
+        schema_res = engine.execute_query(f'DESCRIBE "{table_name}"')
+        columns = [row[0] for row in schema_res.get("rows", [])]
+
+        if not columns:
+            return f"Error: Table '{table_name}' has no columns or does not exist."
+
+        null_selects = [f'COUNT(*) - COUNT("{c}") AS "{c}_nulls"' for c in columns]
+        null_query = f'SELECT {", ".join(null_selects)} FROM "{table_name}"'
+        null_res = engine.execute_query(null_query)
+        null_str = _format_query_result(null_res)
+
+        summarize_res = engine.execute_query(f'SUMMARIZE "{table_name}"')
+        summarize_str = _format_query_result(summarize_res)
+
+        duplicate_query = f'SELECT COUNT(*) - COUNT(DISTINCT *) AS duplicate_count FROM "{table_name}"'
+        try:
+            duplicate_res = engine.execute_query(duplicate_query)
+            duplicate_str = _format_query_result(duplicate_res)
+        except Exception as dup_e:
+            duplicate_str = f"Could not calculate exact duplicates ({str(dup_e)})."
+
+        report = f"## Data Quality Assessment for '{table_name}'\n\n"
+        report += f"### Duplicate Rows\n{duplicate_str}\n\n"
+        report += f"### Null Value Counts\n{null_str}\n\n"
+        report += f"### Summary Statistics (Includes approximate unique counts & null percentages)\n{summarize_str}\n"
+
+        return _truncate_output(report, max_chars=15000)
+    except Exception as e:
+        return f"Error executing tool 'get_assessment_report_tool': {str(e)}"
+
+
 # ── Kept Helper Tools (not replaceable by SQL) ───────────────────────────────
 
 def get_data_state_list(tool_context: ToolContext) -> list[dict[str, str]]:
