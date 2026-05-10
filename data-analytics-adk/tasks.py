@@ -104,13 +104,15 @@ class Tee:
             f.flush()
 
 def embed_images_in_markdown(markdown_text: str, output_dir: str) -> str:
-    markdown_text = re.sub(r'\[Embed Image Here:\s*`?(.*?)`?\]', r'\1', markdown_text)
+    markdown_text = re.sub(r'`?\[Embed Image Here:\s*`?(.*?)`?\]`?', r'\1', markdown_text)
+    
+    markdown_text = re.sub(r'!\[(.*?)[\(\[]\s*`?(.*?\.(?:png|jpg|jpeg|gif|webp|svg))`?\s*[\)\]]`?\s*\]', r'![\1](\2)', markdown_text)
 
     pattern = r"!\[(.*?)\]\((.*?)\)"
 
     def replace_match(match):
         alt_text = match.group(1)
-        image_path = match.group(2)
+        image_path = match.group(2).strip('`"\' ')
         full_path = os.path.join(output_dir, image_path)
 
         if not os.path.exists(full_path):
