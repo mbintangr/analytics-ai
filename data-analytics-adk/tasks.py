@@ -104,6 +104,8 @@ class Tee:
             f.flush()
 
 def embed_images_in_markdown(markdown_text: str, output_dir: str) -> str:
+    markdown_text = re.sub(r'\[Embed Image Here:\s*`?(.*?)`?\]', r'\1', markdown_text)
+
     pattern = r"!\[(.*?)\]\((.*?)\)"
 
     def replace_match(match):
