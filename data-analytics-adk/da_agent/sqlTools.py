@@ -86,17 +86,18 @@ def _format_query_result(result: dict) -> str:
     col_widths = [len(str(c)) for c in columns]
     for row in rows[:50]:  # Only measure first 50 rows for width
         for i, val in enumerate(row):
-            col_widths[i] = min(max(col_widths[i], len(str(val))), 40)
+            str_val = str(val if val is not None else "NULL").replace("|", "\\|").replace("\n", " ")[:40]
+            col_widths[i] = min(max(col_widths[i], len(str_val)), 40)
 
-    header = " | ".join(str(c).ljust(col_widths[i]) for i, c in enumerate(columns))
-    separator = "-+-".join("-" * w for w in col_widths)
+    header = "| " + " | ".join(str(c).ljust(col_widths[i]) for i, c in enumerate(columns)) + " |"
+    separator = "|" + "|".join("-" * (w + 2) for w in col_widths) + "|"
 
     lines = [header, separator]
     for row in rows:
-        line = " | ".join(
-            str(val if val is not None else "NULL").ljust(col_widths[i])[:40]
+        line = "| " + " | ".join(
+            str(val if val is not None else "NULL").replace("|", "\\|").replace("\n", " ")[:40].ljust(col_widths[i])
             for i, val in enumerate(row)
-        )
+        ) + " |"
         lines.append(line)
 
     output = "\n".join(lines)
