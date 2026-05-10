@@ -414,13 +414,11 @@ def get_assessment_report_tool(
             duplicate_count = 0
 
         duplicate_ratio = duplicate_count / max(total_rows, 1)
-        outlier_ratio = 0.0
-        score = 1.0 - (0.5 * null_ratio + 0.3 * duplicate_ratio + 0.2 * outlier_ratio)
+        score = 1.0 - (0.8 * null_ratio + 0.2 * duplicate_ratio)
 
         data_quality_score = {
             "null_ratio": null_ratio,
             "duplicate_ratio": duplicate_ratio,
-            "outlier_ratio": outlier_ratio,
             "quality_score": round(max(score, 0.0), 3)
         }
 
