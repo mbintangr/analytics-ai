@@ -353,7 +353,7 @@ def get_assessment_report_tool(
         summarize_res = engine.execute_query(f'SUMMARIZE "{table_name}"')
         summarize_str = _format_query_result(summarize_res)
 
-        duplicate_query = f'SELECT COUNT(*) - COUNT(DISTINCT *) AS duplicate_count FROM "{table_name}"'
+        duplicate_query = f'SELECT (SELECT COUNT(*) FROM "{table_name}") - (SELECT COUNT(*) FROM (SELECT DISTINCT * FROM "{table_name}")) AS duplicate_count'
         try:
             duplicate_res = engine.execute_query(duplicate_query)
             duplicate_str = _format_query_result(duplicate_res)
