@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { IoClose, IoDownloadOutline } from "react-icons/io5";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export interface ProcessLog {
   id: string;
@@ -55,6 +57,7 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
   const scrollRef = useRef<HTMLTableRowElement>(null);
   const [selectedLog, setSelectedLog] = useState<ProcessLog | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [detailsMode, setDetailsMode] = useState<"raw" | "formatted">("formatted");
 
   useEffect(() => {
     setMounted(true);
@@ -230,13 +233,31 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
                   {selectedLog.event}
                 </span>
               </div>
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="p-1 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <IoClose size={20} />
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex bg-black/5 dark:bg-white/5 rounded p-0.5 border" style={{ borderColor: "var(--surface-border)" }}>
+                  <button
+                    onClick={() => setDetailsMode("raw")}
+                    className={cn("px-3 py-1 text-xs font-medium rounded transition-colors", detailsMode === "raw" ? "shadow-sm" : "opacity-60 hover:opacity-100")}
+                    style={detailsMode === "raw" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-primary)" }}
+                  >
+                    Raw
+                  </button>
+                  <button
+                    onClick={() => setDetailsMode("formatted")}
+                    className={cn("px-3 py-1 text-xs font-medium rounded transition-colors", detailsMode === "formatted" ? "shadow-sm" : "opacity-60 hover:opacity-100")}
+                    style={detailsMode === "formatted" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-primary)" }}
+                  >
+                    Formatted
+                  </button>
+                </div>
+                <button
+                  onClick={() => setSelectedLog(null)}
+                  className="p-1.5 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <IoClose size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="p-4 overflow-auto font-mono text-xs" style={{ background: "var(--surface-deep)", color: "var(--text-secondary)" }}>
@@ -244,15 +265,50 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
                 <span>Timestamp: {new Date(selectedLog.timestamp).toLocaleString()}</span>
                 <span>ID: {selectedLog.id}</span>
               </div>
-              <pre className="whitespace-pre-wrap wrap-break-word">
-                {(() => {
-                  try {
-                    return selectedLog.details ? JSON.stringify(JSON.parse(selectedLog.details), null, 2) : "No details available.";
-                  } catch (e) {
-                    return selectedLog.details || "No details available.";
-                  }
-                })()}
-              </pre>
+              
+              {detailsMode === "raw" ? (
+                <pre className="whitespace-pre-wrap wrap-break-word">
+                  {(() => {
+                    try {
+                      return selectedLog.details ? JSON.stringify(JSON.parse(selectedLog.details), null, 2) : "No details available.";
+                    } catch (e) {
+                      return selectedLog.details || "No details available.";
+                    }
+                  })()}
+                </pre>
+              ) : (
+                <div className="prose prose-sm max-w-none font-sans
+                  prose-headings:font-display prose-headings:font-bold
+                  prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                  prose-p:leading-relaxed
+                  prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:font-mono
+                  prose-ul:list-disc prose-ul:pl-6 prose-li:marker:text-primary
+                  [&_h1]:text-[color:var(--text-primary)]
+                  [&_h2]:text-[color:var(--text-primary)]
+                  [&_h3]:text-[color:var(--text-primary)]
+                  [&_p]:text-[color:var(--text-secondary)]
+                  [&_li]:text-[color:var(--text-secondary)]
+                  [&_strong]:text-[color:var(--text-primary)]
+                  [&_pre]:bg-[color:var(--surface-card)] [&_pre]:border [&_pre]:border-[color:var(--surface-border)]
+                ">
+                  {(() => {
+                    if (!selectedLog.details) return "No details available.";
+                    try {
+                      const parsed = JSON.parse(selectedLog.details);
+                      if (parsed.result && typeof parsed.result === "string") {
+                        return <ReactMarkdown remarkPlugins={[remarkGfm]}>{parsed.result}</ReactMarkdown>;
+                      } else if (parsed.output && typeof parsed.output === "string") {
+                        return <ReactMarkdown remarkPlugins={[remarkGfm]}>{parsed.output}</ReactMarkdown>;
+                      } else if (parsed.response && typeof parsed.response === "string") {
+                        return <ReactMarkdown remarkPlugins={[remarkGfm]}>{parsed.response}</ReactMarkdown>;
+                      }
+                      return <pre className="font-mono text-xs"><code>{JSON.stringify(parsed, null, 2)}</code></pre>;
+                    } catch (e) {
+                      return <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedLog.details}</ReactMarkdown>;
+                    }
+                  })()}
+                </div>
+              )}
             </div>
             <div className="p-3 border-t flex justify-end" style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}>
               <button

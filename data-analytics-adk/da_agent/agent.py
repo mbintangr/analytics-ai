@@ -77,23 +77,7 @@ MODEL_CONFIGS = {
         "api_key_env": "OPENROUTER_API_KEY",
         "api_base": "https://openrouter.ai/api/v1",
     },
-    "openrouter/openai/gpt-oss-120b:free": {
-        "api_key_env": "OPENROUTER_API_KEY",
-        "api_base": "https://openrouter.ai/api/v1",
-    },
-    "openrouter/openai/gpt-oss-20b:free": {
-        "api_key_env": "OPENROUTER_API_KEY",
-        "api_base": "https://openrouter.ai/api/v1",
-    },
-    "openrouter/nvidia/nemotron-3-nano-30b-a3b:free": {
-        "api_key_env": "OPENROUTER_API_KEY",
-        "api_base": "https://openrouter.ai/api/v1",
-    },
-    "openrouter/qwen/qwen3-coder:free": {
-        "api_key_env": "OPENROUTER_API_KEY",
-        "api_base": "https://openrouter.ai/api/v1",
-    },
-    "openrouter/arcee-ai/trinity-large-preview:free": {
+    "openrouter/openai/gpt-oss-120b": {
         "api_key_env": "OPENROUTER_API_KEY",
         "api_base": "https://openrouter.ai/api/v1",
     },
@@ -271,8 +255,11 @@ You are a Data Cleaning Execution Agent. You use SQL via run_sql_tool to clean d
 BUSINESS CONTEXT:
 {business_questions}
 
+DATA ASSESSMENT REPORT (Cleaning Recommendations):
+{data_assessment}
+
 OBJECTIVE:
-Execute the Cleaning Recommendations using SQL queries via run_sql_tool.
+Execute the Cleaning Recommendations from the Data Assessment Report using SQL queries via run_sql_tool.
 You MUST NOT assess, verify, or interpret results.
 Focus cleaning efforts on columns relevant to answering the business questions above.
 
@@ -362,6 +349,7 @@ Execute a strictly ordered preprocessing pipeline consisting of:
 2) pre-cleaning data quality diagnosis,
 3) deterministic cleaning execution,
 4) post-cleaning data quality validation.
+5) if there are still issues, repeat from step 2.
 
 All sub-agents are aware of the business context and will focus their work on answering the business questions above.
 
@@ -382,6 +370,7 @@ EXECUTION STEPS (STRICT ORDER):
 4. Call data_assessing_agent AGAIN
    - Perform POST-CLEANING validation on the cleaned dataset.
    - Confirm remaining issues, if any.
+5. IF NEEDED, REPEAT FROM STEP 2
 
 OUTPUT:
 Produce a FINAL preprocessing report with EXACTLY these sections:

@@ -449,6 +449,14 @@ async def regenerate_report(session_id: str):
 
                 # Create new session
                 new_session_id = str(uuid.uuid4())
+
+                # Create a copy of the dataset to maintain isolation between sessions
+                upload_dir = os.path.dirname(dataset_path)
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                new_dataset_path = os.path.join(upload_dir, f"{timestamp}_{original_filename}_{new_session_id}")
+                
+                shutil.copy2(dataset_path, new_dataset_path)
+
                 cur.execute(
                     """
                     INSERT INTO "AnalysisSession"
@@ -460,7 +468,7 @@ async def regenerate_report(session_id: str):
                         user_id,
                         f"Analysis of {original_filename}",
                         original_filename,
-                        dataset_path,
+                        new_dataset_path,
                         "PROCESSING",
                         business_questions or None,
                         model_name or None
@@ -468,7 +476,7 @@ async def regenerate_report(session_id: str):
                 )
 
         # Trigger Celery Task
-        result = process_dataset_task.delay(dataset_path, new_session_id, business_questions or "", model_name or "")
+        result = process_dataset_task.delay(new_dataset_path, new_session_id, business_questions or "", model_name or "")
 
         # Store Celery task ID for cancellation
         with get_db_connection() as conn:
@@ -486,12 +494,12 @@ async def regenerate_report(session_id: str):
 
 @app.post("/cancel/{session_id}")
 async def cancel_analysis(session_id: str):
-    """Cancel a running analysis by revoking its Celery task."""
+    """Cancel a running analysis by revoking its Celery task and deleting its data."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    'SELECT "celeryTaskId", status FROM "AnalysisSession" WHERE id = %s',
+                    'SELECT "celeryTaskId", status, "datasetPath" FROM "AnalysisSession" WHERE id = %s',
                     (session_id,)
                 )
                 result = cur.fetchone()
@@ -499,7 +507,7 @@ async def cancel_analysis(session_id: str):
                 if not result:
                     raise HTTPException(status_code=404, detail="Session not found")
 
-                celery_task_id, status = result
+                celery_task_id, status, dataset_path = result
 
                 if not status or not status.startswith("PROCESSING"):
                     raise HTTPException(status_code=400, detail="Analysis is not currently running")
@@ -507,9 +515,30 @@ async def cancel_analysis(session_id: str):
                 if celery_task_id:
                     celery_app.control.revoke(celery_task_id, terminate=True, signal='SIGTERM')
 
+                # Delete dataset file
+                if dataset_path and os.path.exists(dataset_path):
+                    try:
+                        os.remove(dataset_path)
+                        print(f"Deleted dataset: {dataset_path}")
+                    except OSError as e:
+                        print(f"Error deleting dataset {dataset_path}: {e}")
+
+                # Delete output directory                
+                if dataset_path:
+                    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+                    output_dir = os.path.join("outputs", dataset_name)
+                    
+                    if os.path.exists(output_dir):
+                        try:
+                            shutil.rmtree(output_dir)
+                            print(f"Deleted output dir: {output_dir}")
+                        except OSError as e:
+                            print(f"Error deleting output dir {output_dir}: {e}")
+
+                # Delete DB record
                 cur.execute(
-                    'UPDATE "AnalysisSession" SET status=%s WHERE id=%s',
-                    ("CANCELLED", session_id)
+                    'DELETE FROM "AnalysisSession" WHERE id=%s',
+                    (session_id,)
                 )
 
         return {"status": "cancelled", "session_id": session_id}

@@ -42,6 +42,32 @@ def _get_engine(tool_context: ToolContext):
     engine = tool_context.state.get("duckdb_engine")
     if engine is None:
         raise ValueError("DuckDB engine not found in tool context state. Ensure it was initialized in tasks.py.")
+    
+    # Auto-discover and register any parquet files in output_dir
+    # This syncs state across sub-agents since ADK might not merge state mutations from sub-agents.
+    output_dir = tool_context.state.get("output_dir")
+    if output_dir and os.path.exists(output_dir):
+        import glob
+        parquet_files = glob.glob(os.path.join(output_dir, "*.parquet"))
+        data_state = tool_context.state.get("data_state", {})
+        
+        for p_file in parquet_files:
+            table_name = os.path.splitext(os.path.basename(p_file))[0]
+            p_file_safe = p_file.replace("\\", "/")
+            
+            # Register in DuckDB engine if missing
+            if table_name not in engine._registered_tables:
+                engine.register_parquet(table_name, p_file_safe)
+            
+            # Update data_state if missing
+            if table_name not in data_state:
+                data_state[table_name] = {
+                    "path": p_file_safe,
+                    "description": f"Dataset: {table_name}",
+                }
+        
+        tool_context.state["data_state"] = data_state
+
     return engine
 
 
@@ -272,6 +298,9 @@ def get_data_state_list(tool_context: ToolContext) -> list[dict[str, str]]:
     """
     try:
         print("Tool 'get_data_state_list' called")
+        # Call _get_engine to auto-discover any new datasets saved by other agents
+        _get_engine(tool_context)
+        
         if "data_state" not in tool_context.state:
             return []
         state_list = []
