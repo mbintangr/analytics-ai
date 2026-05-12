@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ProcessingView } from "./processing-view";
 import { ProcessLogsTable, ProcessLog } from "./process-logs-table";
 import { DatasetTable } from "./dataset-table";
+import { ImageGallery } from "./image-gallery";
 
 interface ReportViewProps {
   reportContent: string | null;
@@ -48,7 +49,7 @@ export function ReportView({
   const [internalReportContent, setInternalReportContent] = React.useState(reportContent);
   const [internalImageBaseUrl, setInternalImageBaseUrl] = React.useState(imageBaseUrl);
   const [internalProcesses, setInternalProcesses] = React.useState<ProcessLog[]>([]);
-  const [activeTab, setActiveTab] = React.useState<'report' | 'logs' | 'dataset' | 'info'>('report');
+  const [activeTab, setActiveTab] = React.useState<'report' | 'logs' | 'dataset' | 'graphs' | 'info'>('report');
   const [isRegenerating, setIsRegenerating] = React.useState(false);
 
   React.useEffect(() => {
@@ -188,8 +189,8 @@ export function ReportView({
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-6 mb-8 border-b" style={{ borderColor: "var(--surface-border)" }}>
-          {(["report", "dataset", "logs", "info"] as const).map((tab) => (
+        <div className="flex space-x-6 mb-8 border-b overflow-x-auto whitespace-nowrap" style={{ borderColor: "var(--surface-border)" }}>
+          {(["report", "dataset", "graphs", "logs", "info"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -200,7 +201,7 @@ export function ReportView({
               }`}
               style={activeTab !== tab ? { color: "var(--text-secondary)" } : undefined}
             >
-              {tab === "report" ? "Report View" : tab === "dataset" ? "Data Viewer" : tab === "logs" ? "System Logs" : "Project Info"}
+              {tab === "report" ? "Report View" : tab === "dataset" ? "Data Viewer" : tab === "graphs" ? "Generated Graphs" : tab === "logs" ? "System Logs" : "Project Info"}
             </button>
           ))}
         </div>
@@ -261,6 +262,12 @@ export function ReportView({
         ) : activeTab === 'dataset' && !reportId ? (
           <div className="flex justify-center items-center h-full min-h-[500px]" style={{ color: "var(--text-secondary)" }}>
             <p>No report ID available for dataset preview.</p>
+          </div>
+        ) : activeTab === 'graphs' && reportId ? (
+          <ImageGallery reportId={reportId} />
+        ) : activeTab === 'graphs' && !reportId ? (
+          <div className="flex justify-center items-center h-full min-h-[500px]" style={{ color: "var(--text-secondary)" }}>
+            <p>No report ID available for graphs.</p>
           </div>
         ) : activeTab === 'info' ? (
           <ProjectInfoPanel metadata={metadata ?? null} />

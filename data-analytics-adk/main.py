@@ -4,6 +4,7 @@ import uuid
 import datetime
 import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import uvicorn
@@ -303,6 +304,81 @@ async def get_dataset_preview(session_id: str, page: int = 1, pageSize: int = 50
                     "pageSize": pageSize,
                     "table": safe_table,
                 }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dataset/{session_id}/images")
+async def list_dataset_images(session_id: str):
+    """List all image files available for a session."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'SELECT "datasetPath" FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+
+                dataset_path = result[0]
+                if not dataset_path:
+                    raise HTTPException(status_code=404, detail="Dataset not found")
+
+        dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+        output_dir = os.path.join("outputs", dataset_name)
+
+        images = []
+        if os.path.isdir(output_dir):
+            for fname in sorted(os.listdir(output_dir)):
+                if fname.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                    images.append({"name": fname})
+
+        return {"images": images}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dataset/{session_id}/image/{filename}")
+async def get_dataset_image(session_id: str, filename: str):
+    """Return a specific image file for a session."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'SELECT "datasetPath" FROM "AnalysisSession" WHERE id = %s',
+                    (session_id,)
+                )
+                result = cur.fetchone()
+
+                if not result:
+                    raise HTTPException(status_code=404, detail="Session not found")
+
+                dataset_path = result[0]
+                if not dataset_path:
+                    raise HTTPException(status_code=404, detail="Dataset not found")
+
+        dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+        output_dir = os.path.join("outputs", dataset_name)
+
+        # Sanitize filename
+        safe_filename = os.path.basename(filename)
+        target_path = os.path.join(output_dir, safe_filename)
+
+        if not os.path.exists(target_path):
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        return FileResponse(target_path)
     except HTTPException:
         raise
     except Exception as e:

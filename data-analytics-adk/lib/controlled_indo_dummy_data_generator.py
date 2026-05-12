@@ -4,13 +4,9 @@ import time
 import json
 import os
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-NUM_OF_ROWS = 10_000_000  # Set to 1M, 5M, or 10M for your iterations
-QUALITY_TYPE = 'dirty'    # 'clean' or 'dirty'
+NUM_OF_ROWS = 10_000_000 
+QUALITY_TYPE = 'dirty'
 
-# Noise Configuration
 MISSING_VALUES_PERCENTAGE = 0.05
 OUTLIERS_PERCENTAGE = 0.0001
 NEGATIVE_VALUES_PERCENTAGE = 0.005
@@ -20,34 +16,28 @@ def generate_sales_data_id():
     print(f"Initializing generation for {NUM_OF_ROWS} rows ({QUALITY_TYPE} mode - ID Context)...")
     start_time = time.time()
     
-    # --- STEP 1: INDONESIAN CATALOG & LOCATIONS ---
     catalog = [
-      # Elektronik
       ('Laptop Asus ROG', 'Elektronik', 15000000), ('Mouse Wireless Logitek', 'Elektronik', 250000),
       ('Keyboard Mekanik', 'Elektronik', 850000), ('Monitor 4K Samsung', 'Elektronik', 4500000),
       ('Headphone Sony WH', 'Elektronik', 3500000), ('Xiaomi Pad 6', 'Elektronik', 5000000),
       ('iPhone 15 Pro', 'Elektronik', 18500000), ('Powerbank Hippo 10000mAh', 'Elektronik', 200000),
       ('Speaker Robot Bluetooth', 'Elektronik', 150000), ('Kabel Data Type-C', 'Elektronik', 45000),
       ('Smart TV LG 43 inch', 'Elektronik', 3800000), ('Kamera Canon EOS', 'Elektronik', 7200000),
-      # Perabot
       ('Kursi Kerja Ergonomis', 'Perabot', 2500000), ('Meja Kerja Minimalis', 'Perabot', 1200000),
       ('Lampu Tidur Karakter', 'Perabot', 85000), ('Rak Buku Portable', 'Perabot', 175000),
       ('Sapu & Pengki Set', 'Perabot', 45000), ('Wajan Anti Lengket Oxone', 'Perabot', 350000),
       ('Magic Com Yong Ma', 'Perabot', 650000), ('Blender Philips', 'Perabot', 550000),
       ('Dispenser Sharp', 'Perabot', 1800000), ('Air Fryer Simplus', 'Perabot', 450000),
-      # Pakaian
       ('Sepatu Lari Specs', 'Pakaian', 450000), ('Kaos Polos Cotton Combed', 'Pakaian', 75000),
       ('Celana Jeans Levi', 'Pakaian', 650000), ('Jaket Hooddie Erigo', 'Pakaian', 250000),
       ('Sandal Jepit Swallow', 'Pakaian', 15000), ('Kemeja Batik Pria', 'Pakaian', 150000),
       ('Hijab Bella Square', 'Pakaian', 25000), ('Tas Ransel Eiger', 'Pakaian', 550000),
       ('Topi Baseball Polos', 'Pakaian', 35000), ('Jam Tangan Casio', 'Pakaian', 450000),
-      # Bahan Pokok
       ('Kopi Kapal Api 1kg', 'Bahan Pokok', 85000), ('Indomie Goreng (Karton)', 'Bahan Pokok', 115000),
       ('Minyak Goreng 2L', 'Bahan Pokok', 35000), ('Beras Pandan Wangi 5kg', 'Bahan Pokok', 75000),
       ('Gula Pasir Gulaku 1kg', 'Bahan Pokok', 16000), ('Garam Meja 250g', 'Bahan Pokok', 5000),
       ('Susu Kental Manis Frisian Flag', 'Bahan Pokok', 12000), ('Teh Celup Sariwangi', 'Bahan Pokok', 10000),
       ('Telur Ayam (1kg)', 'Bahan Pokok', 28000), ('Kecap Manis Bango 550ml', 'Bahan Pokok', 22000),
-      # Kecantikan & Otomotif
       ('Skincare MS Glow Set', 'Kecantikan', 300000), ('Sunscreen Azarine', 'Kecantikan', 65000),
       ('Lipmatte Wardah', 'Kecantikan', 55000), ('Parfum HMNS', 'Kecantikan', 350000),
       ('Oli Mesin Shell Helix', 'Otomotif', 95000), ('Ban Motor Tubeless', 'Otomotif', 250000),
@@ -58,8 +48,6 @@ def generate_sales_data_id():
     catalog_cats = np.array([item[1] for item in catalog])
     catalog_prices = np.array([item[2] for item in catalog])
     
-    # Random selection (with large numbers, standard random will naturally have clear winners,
-    # but you can re-introduce the weighting array here if you want extreme outliers)
     indices = np.random.choice(len(catalog), NUM_OF_ROWS)
     
     cities = ['Jakarta', 'Surabaya', 'Bandung', 'Medan', 'Semarang', 'Makassar', 'Palembang', 'Yogyakarta']
@@ -77,12 +65,10 @@ def generate_sales_data_id():
     
     df = pd.DataFrame(data)
     
-    # Base price calculation
     df['unit_price'] = (catalog_prices[indices] * np.random.uniform(0.95, 1.05, NUM_OF_ROWS))
     df['unit_price'] = (df['unit_price'] // 100) * 100
     df['total_bill'] = df['quantity'] * df['unit_price']
 
-    # --- STEP 2: EXTRACT ADVANCED GROUND TRUTH (BEFORE NOISE) ---
     print("Calculating Advanced Ground Truth for validation...")
     
     # Q1: Elektronik revenue by location
@@ -130,14 +116,6 @@ def generate_sales_data_id():
         mask_neg_qty = np.random.rand(NUM_OF_ROWS) < NEGATIVE_VALUES_PERCENTAGE
         df.loc[mask_neg_qty, 'quantity'] = df.loc[mask_neg_qty, 'quantity'] * -1
 
-        # mask_messy_text = np.random.rand(NUM_OF_ROWS) < INCONSISTENT_TEXT_PERCENTAGE
-        # dirty_city_map = {'Jakarta': 'JKT', 'Yogyakarta': 'Jogja', 'Bandung': 'BDG', 'Surabaya': 'SBY', 'Makassar': 'makasar'}
-
-        # for clean_city, dirty_city in dirty_city_map.items():
-        #     mask_target = (df['store_location'] == clean_city) & mask_messy_text
-        #     df.loc[mask_target, 'store_location'] = dirty_city
-
-        # Re-calculate total_bill with dirty data so anomalies cascade into the total
         df['total_bill'] = df['quantity'] * df['unit_price']
 
     # --- STEP 4: EXPORT ---
