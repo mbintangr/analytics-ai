@@ -382,13 +382,14 @@ def get_assessment_report_tool(
             sample_values = [r[0] for r in sample_val_res.get("rows", [])]
 
             null_percentage = float(s_row[11]) if s_row and s_row[11] is not None else 0.0
-            null_count = int(total_rows * null_percentage)
+            col_null_ratio = null_percentage / 100.0
+            null_count = int(total_rows * col_null_ratio)
             unique_count = int(s_row[4]) if s_row and s_row[4] is not None else 0
 
             profile[col] = {
                 "dtype": dtypes[col],
                 "null_count": null_count,
-                "null_ratio": null_percentage,
+                "null_ratio": col_null_ratio,
                 "unique_count": unique_count,
                 "sample_values": sample_values
             }
