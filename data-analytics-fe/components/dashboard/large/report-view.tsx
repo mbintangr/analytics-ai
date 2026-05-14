@@ -256,7 +256,7 @@ export function ReportView({
             </ReactMarkdown>
           </div>
         ) : activeTab === 'logs' ? (
-          <ProcessLogsTable logs={internalProcesses} standalone={true} />
+          <ProcessLogsTable logs={internalProcesses} standalone={true} projectName={filename} />
         ) : activeTab === 'dataset' && reportId ? (
           <DatasetTable reportId={reportId} />
         ) : activeTab === 'dataset' && !reportId ? (

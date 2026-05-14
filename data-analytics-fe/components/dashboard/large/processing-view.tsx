@@ -235,7 +235,7 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
                 </div>
               </div>
 
-              <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} />
+              <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} projectName={filename} />
             </div>
           ) : (
             /* Progress Nodes */
