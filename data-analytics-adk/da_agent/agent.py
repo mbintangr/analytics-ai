@@ -92,15 +92,11 @@ MODEL_CONFIGS = {
 DEFAULT_MODEL = "openrouter/xiaomi/mimo-v2-flash"
 
 # ── Pydantic output schemas (model-independent) ──────────────────────────────
-class visualizationSchema(BaseModel):
-    file_name: str = Field(description="The visualization filename. Make sure it is a valid filename and the file is saved in the output directory.")
-    description: str = Field(description="The description of the visualization")
-
 class insightSchema(BaseModel):
     insight: str = Field(description="The insight derived from the data")
     evidence: Optional[str] = Field(default=None, description="The evidence supporting the insight")
     insight_table: Optional[str] = Field(default=None, description="The data table supporting the insight")
-    visualizations: List[visualizationSchema] = Field(default_factory=list, description="The list of visualization")
+    visualizations: List[str] = Field(default_factory=list, description="The list of visualization filenames")
 
 class questionInsightsSchema(BaseModel):
     question: str = Field(description="The business question being answered")
