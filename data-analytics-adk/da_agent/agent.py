@@ -558,9 +558,13 @@ You are an Exploratory Data Analysis Coordinator.
 BUSINESS CONTEXT:
 {business_questions}
 
+SCHEMA CORRECTION (if non-empty, your previous output failed validation):
+{eda_schema_error}
+
 OBJECTIVE:
 Run EDA for EACH business question and consolidate results.
-Perform EDA specifically for each of the business questions above.
+If SCHEMA CORRECTION is non-empty, do NOT call prep_insight_agent again — just
+re-emit the corrected structured output that fixes the reported validation error.
 
 AVAILABLE AGENTS:
 - prep_insight_agent
@@ -570,10 +574,12 @@ EXECUTION RULES:
 2. Call prep_insight_agent for each question.
 3. Preserve ALL visualization references exactly.
 
-OUTPUT:
-Return a structured response matching the output schema:
-- Each insight must include: insight text, evidence, and visualization filenames
-- Group insights by business question
+OUTPUT SCHEMA RULES (follow exactly):
+- Top-level: {{"insights": [...]}} — a list of question-grouped objects.
+- Each object: {{"question": str, "insights": [insight objects]}}.
+- Each insight: {{"insight": str, "evidence": str, "visualizations": [str, ...]}}.
+- "visualizations" MUST be a list of plain filename strings e.g. "chart.png".
+- Do NOT nest objects inside "visualizations" — strings only.
 
 STRICT CONSTRAINTS:
 - Do NOT drop any visualization

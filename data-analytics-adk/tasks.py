@@ -14,13 +14,14 @@ from celery_app import celery_app
 from celery.signals import task_failure
 from billiard.exceptions import WorkerLostError
 from database import get_db_connection
-from da_agent.agent import create_root_agent, MODEL_CONFIGS, DEFAULT_MODEL
+from da_agent.agent import create_root_agent, edaAgentOutputSchema, MODEL_CONFIGS, DEFAULT_MODEL
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk.artifacts import InMemoryArtifactService
 from da_agent.dataTools import save_text_to_file
 from da_agent.duckdb_engine import DuckDBEngine
 from google.genai import types
+from pydantic import ValidationError
 import litellm
 
 litellm.suppress_debug_info = True
@@ -205,6 +206,8 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         "data_preparation": "",
         "insights": "",
         "eda_report": "",
+        "eda_schema_error": "",      # populated on retry to feed error back to eda_agent
+        "eda_last_raw_output": "",   # snapshot of raw set_model_response args before validation
         "final_report": "",
         "session_id": session_id,
     }
@@ -229,18 +232,13 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
 
     log_file_path = os.path.join(output_dir, "run.log")
     log_file = open(log_file_path, "w", encoding="utf-8")
-    
-    # We can't easily hijack sys.stdout in Celery without side effects, 
-    # but we can write to the log file manually alongside logging
-    
-    try:
-        content = types.Content(role="user", parts=[types.Part(text=query)])
-        
-        events_log_path = os.path.join(output_dir, "events.jsonl")
-        
+
+    EDA_SCHEMA_MAX_RETRIES = 3
+
+    async def run_pipeline(content, events_log_path):
+        """Run the full agent pipeline, returning (token_count, final_response_text)."""
         token = 0
         final_response_text = ""
-
         last_author = None
         with open(events_log_path, "w", encoding="utf-8") as events_file:
             async for event in runner.run_async(
@@ -248,7 +246,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 user_id=USER_ID,
                 session_id=session_id,
             ):
-                # Convert event to dict
                 event_data = None
                 try:
                     if hasattr(event, "model_dump"):
@@ -257,7 +254,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                         event_data = event.to_dict()
                     elif hasattr(event, "__dict__"):
                         event_data = event.__dict__
-                    
                     if event_data is None:
                         event_data = {"str_repr": str(event)}
                 except Exception:
@@ -269,17 +265,15 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                         last_author = author
                         new_status = f"PROCESSING {author}"
                         with get_db_connection() as conn:
-                             with conn.cursor() as cur:
-                                 cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', (new_status, session_id))
+                            with conn.cursor() as cur:
+                                cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', (new_status, session_id))
                 except Exception as e:
                     print(f"Error updating status: {e}")
 
-                # Log to file
                 json.dump(event_data, events_file, cls=DateTimeEncoder)
                 events_file.write("\n")
                 events_file.flush()
 
-                # Track tokens
                 usage_metadata = getattr(event, "usage_metadata", None)
                 if usage_metadata:
                     if isinstance(usage_metadata, dict):
@@ -290,6 +284,48 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 if event.is_final_response():
                     if event.content and event.content.parts:
                         final_response_text = event.content.parts[0].text
+
+        return token, final_response_text
+
+    try:
+        content = types.Content(role="user", parts=[types.Part(text=query)])
+        events_log_path = os.path.join(output_dir, "events.jsonl")
+        token = 0
+        final_response_text = ""
+
+        for attempt in range(EDA_SCHEMA_MAX_RETRIES):
+            try:
+                t, r = await run_pipeline(content, events_log_path)
+                token += t
+                final_response_text = r
+                break  # success
+            except ValidationError as ve:
+                print(f"[Retry {attempt + 1}/{EDA_SCHEMA_MAX_RETRIES}] EDA schema validation failed: {ve}")
+                if attempt == EDA_SCHEMA_MAX_RETRIES - 1:
+                    raise
+
+                # Read the raw output snapshot saved by before_tool_callback
+                session_snapshot = await session_service.get_session(
+                    app_name=APP_NAME, user_id=USER_ID, session_id=session_id
+                )
+                raw_output = session_snapshot.state.get("eda_last_raw_output", "(not captured)")
+                error_msg = (
+                    f"Your previous output failed Pydantic schema validation.\n"
+                    f"ERROR:\n{str(ve)}\n\n"
+                    f"YOUR RAW OUTPUT:\n{raw_output}\n\n"
+                    f"Fix the output so it matches the required schema."
+                )
+                print(f"[Retry] Feeding validation error back to eda_agent:\n{error_msg}")
+
+                # Inject error into session state so eda_agent sees {eda_schema_error}
+                await session_service.update_session(
+                    app_name=APP_NAME,
+                    user_id=USER_ID,
+                    session_id=session_id,
+                    delta={"eda_schema_error": error_msg},
+                )
+                # Re-use the same content; eda_agent reads error from state
+                content = types.Content(role="user", parts=[types.Part(text=query)])
 
     finally:
         monitor_task.cancel()

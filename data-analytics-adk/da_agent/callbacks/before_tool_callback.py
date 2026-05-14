@@ -2,6 +2,7 @@ from typing import Optional
 from google.adk.tools.tool_context import ToolContext
 from google.adk.tools.base_tool import BaseTool
 from typing import Dict, Any
+import json
 
 def log_before_tool_execution(
     tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext
@@ -12,6 +13,16 @@ def log_before_tool_execution(
 
     print(f"[Callback] Executing tool: {tool_name} in agent {agent_name}")
     print(f"[Callback] Tool Args: {args}")
+
+    # Snapshot raw args before set_model_response validates them against output_schema.
+    # This lets the retry loop in tasks.py recover the bad output and send the
+    # validation error back to the agent as feedback.
+    if tool_name == "set_model_response":
+        try:
+            state = getattr(tool_context, "state", {})
+            state["eda_last_raw_output"] = json.dumps(args)
+        except Exception:
+            pass
 
     # Log to Database
     try:
