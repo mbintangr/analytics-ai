@@ -22,6 +22,7 @@ interface ProcessLogsTableProps {
   isLoading?: boolean;
   autoScroll?: boolean;
   standalone?: boolean;
+  projectName?: string;
 }
 
 function escapeCsvCell(value: string | null | undefined): string {
@@ -32,7 +33,7 @@ function escapeCsvCell(value: string | null | undefined): string {
   return str;
 }
 
-function exportLogsToCsv(logs: ProcessLog[]) {
+function exportLogsToCsv(logs: ProcessLog[], projectName?: string) {
   const headers = ["ID", "Timestamp", "Type", "Name", "Event", "Details"];
   const rows = logs.map((log) => [
     escapeCsvCell(log.id),
@@ -48,12 +49,12 @@ function exportLogsToCsv(logs: ProcessLog[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `system-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = projectName ? `${projectName}_system-logs.csv` : `system-logs.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-export function ProcessLogsTable({ logs, className, isLoading, autoScroll = false, standalone = false }: ProcessLogsTableProps) {
+export function ProcessLogsTable({ logs, className, isLoading, autoScroll = false, standalone = false, projectName }: ProcessLogsTableProps) {
   const scrollRef = useRef<HTMLTableRowElement>(null);
   const [selectedLog, setSelectedLog] = useState<ProcessLog | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -83,7 +84,7 @@ export function ProcessLogsTable({ logs, className, isLoading, autoScroll = fals
           {logs.length} {logs.length === 1 ? "entry" : "entries"}
         </span>
         <button
-          onClick={() => exportLogsToCsv(logs)}
+          onClick={() => exportLogsToCsv(logs, projectName)}
           disabled={logs.length === 0}
           className="flex h-[38px] items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary/60 hover:bg-primary/10 hover:text-primary shrink-0"
           style={{
