@@ -299,8 +299,8 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 token += t
                 final_response_text = r
                 break  # success
-            except ValidationError as ve:
-                print(f"[Retry {attempt + 1}/{EDA_SCHEMA_MAX_RETRIES}] EDA schema validation failed: {ve}")
+            except (ValidationError, json.JSONDecodeError) as ve:
+                print(f"[Retry {attempt + 1}/{EDA_SCHEMA_MAX_RETRIES}] EDA output error: {ve}")
                 if attempt == EDA_SCHEMA_MAX_RETRIES - 1:
                     raise
 
