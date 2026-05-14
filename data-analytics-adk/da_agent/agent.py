@@ -102,8 +102,12 @@ class insightSchema(BaseModel):
     insight_table: Optional[str] = Field(default=None, description="The data table supporting the insight")
     visualizations: List[visualizationSchema] = Field(default_factory=list, description="The list of visualization")
 
+class questionInsightsSchema(BaseModel):
+    question: str = Field(description="The business question being answered")
+    insights: List[insightSchema] = Field(description="The list of insights for this question")
+
 class edaAgentOutputSchema(BaseModel):
-    insights: List[insightSchema]
+    insights: List[questionInsightsSchema]
 
 
 # ── Factory function ─────────────────────────────────────────────────────────
