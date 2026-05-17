@@ -59,8 +59,8 @@ from .sqlTools import (
     get_understanding_report_tool,
     get_assessment_report_tool,
 )
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Optional, Any
+from pydantic import BaseModel, Field, field_validator
 
 from da_agent.callbacks.before_agent_callback import log_before_agent_execution
 from da_agent.callbacks.after_agent_callback import log_after_agent_execution
@@ -104,6 +104,15 @@ class questionInsightsSchema(BaseModel):
 
 class edaAgentOutputSchema(BaseModel):
     insights: List[questionInsightsSchema]
+
+    @field_validator("insights", mode="before")
+    @classmethod
+    def parse_insights_if_string(cls, v: Any) -> Any:
+        """Allow the LLM to return insights as a JSON-encoded string."""
+        if isinstance(v, str):
+            import json as _json
+            return _json.loads(v)
+        return v
 
 
 # ── Factory function ─────────────────────────────────────────────────────────

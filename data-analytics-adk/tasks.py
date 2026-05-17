@@ -17,6 +17,7 @@ from database import get_db_connection
 from da_agent.agent import create_root_agent, edaAgentOutputSchema, MODEL_CONFIGS, DEFAULT_MODEL
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.adk.events import Event, EventActions
 from google.adk.artifacts import InMemoryArtifactService
 from da_agent.dataTools import save_text_to_file
 from da_agent.duckdb_engine import DuckDBEngine
@@ -108,6 +109,18 @@ def embed_images_in_markdown(markdown_text: str, output_dir: str) -> str:
     markdown_text = re.sub(r'`?\[Embed Image Here:\s*`?(.*?)`?\]`?', r'\1', markdown_text)
     
     markdown_text = re.sub(r'!\[(.*?)[\(\[]\s*`?(.*?\.(?:png|jpg|jpeg|gif|webp|svg))`?\s*[\)\]]`?\s*\]', r'![\1](\2)', markdown_text)
+
+    # Handle cases where LLM only outputs the filename without markdown formatting
+    lines = markdown_text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        clean_line = line.strip(' \t\n\r`"\'')
+        if re.search(r'\.(?:png|jpg|jpeg|gif|webp|svg)$', clean_line, re.IGNORECASE) and not clean_line.startswith("!["):
+            img_path = os.path.join(output_dir, clean_line)
+            if os.path.isfile(img_path):
+                filename_no_ext = os.path.splitext(clean_line)[0]
+                lines[i] = line.replace(line.strip(), f"![{filename_no_ext}]({clean_line})")
+
+    markdown_text = "".join(lines)
 
     pattern = r"!\[(.*?)\]\((.*?)\)"
 
@@ -318,12 +331,17 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 print(f"[Retry] Feeding validation error back to eda_agent:\n{error_msg}")
 
                 # Inject error into session state so eda_agent sees {eda_schema_error}
-                await session_service.update_session(
-                    app_name=APP_NAME,
-                    user_id=USER_ID,
-                    session_id=session_id,
-                    delta={"eda_schema_error": error_msg},
+                session_snapshot = await session_service.get_session(
+                    app_name=APP_NAME, user_id=USER_ID, session_id=session_id
                 )
+                error_event = Event(
+                    invocation_id=f"retry-{attempt}",
+                    author="system",
+                    actions=EventActions(
+                        state_delta={"eda_schema_error": error_msg}
+                    ),
+                )
+                await session_service.append_event(session_snapshot, error_event)
                 # Re-use the same content; eda_agent reads error from state
                 content = types.Content(role="user", parts=[types.Part(text=query)])
 
