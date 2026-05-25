@@ -22,6 +22,7 @@ from da_agent.callbacks.before_agent_callback import log_before_agent_execution
 from da_agent.callbacks.after_agent_callback import log_after_agent_execution
 from da_agent.callbacks.before_tool_callback import log_before_tool_execution
 from da_agent.callbacks.after_tool_callback import log_after_tool_execution
+from da_agent.callbacks.on_tool_error_callback import handle_tool_error
 
 warnings.filterwarnings("ignore")
 
@@ -133,6 +134,7 @@ Output ONLY the Markdown report.
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     data_assessing_agent = Agent(
@@ -199,6 +201,7 @@ STRICT CONSTRAINTS:
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     data_cleaning_agent = Agent(
@@ -367,6 +370,7 @@ STRICT CONSTRAINTS:
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     data_preparation_agent = Agent(
@@ -435,6 +439,7 @@ Output ONLY this list.
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     insights_gatherer_agent = Agent(
@@ -500,6 +505,7 @@ STRICT CONSTRAINTS:
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     prep_insight_agent = SequentialAgent(
@@ -565,6 +571,7 @@ STRICT CONSTRAINTS:
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     data_explainer_agent = Agent(
@@ -653,6 +660,7 @@ STRICT CONSTRAINTS:
         after_agent_callback=[log_after_agent_execution],
         before_tool_callback=[log_before_tool_execution],
         after_tool_callback=[log_after_tool_execution],
+        on_tool_error_callback=[handle_tool_error],
     )
 
     root_agent = SequentialAgent(
