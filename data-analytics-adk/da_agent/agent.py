@@ -6,56 +6,12 @@ from dotenv import load_dotenv
 import os
 import warnings
 import logging
-# ── Old Pandas-based tool imports (replaced by DuckDB SQL tools) ──────────────
-# from .agentTools import (
-#     exit_loop,
-#     get_data_state_list,
-#     get_understanding_report,
-#     get_assessment_report,
-#     get_unique_values_tool,
-#     get_unique_values_count_tool,
-#     get_rows_by_condition_tool,
-#     get_null_values_rows_tool,
-#     merge_data_tool,
-#     remove_null_values_tool,
-#     fill_null_values_tool,
-#     remove_duplicate_values_tool,
-#     replace_column_value_tool,
-#     replace_column_value_regex_tool,
-#     change_data_type_tool,
-#     create_column_from_expression_tool,
-#     drop_columns_tool,
-#     rename_columns_tool,
-#     clean_text_column_tool,
-#     convert_to_datetime_tool,
-#     impute_missing_values_tool,
-#     copy_data_state_tool,
-#     save_data_state_tool,
-#     group_and_aggregate_tool,
-#     create_pivot_table_tool,
-#     get_top_n_rows_tool,
-#     get_group_stats_tool,
-#     get_column_stats_tool,
-#     get_aggregation_scalar_tool,
-#     get_data_tool,
-#     remove_outliers_tool,
-#     clip_values_tool,
-#     remove_rows_by_condition_tool,
-#     filter_rows_by_condition_tool,
-#     split_column_tool,
-#     convert_column_type_tool,
-#     plot_chart_tool,
-#     list_output_files_tool,
-# )
 
-# ── New DuckDB SQL-based tool imports ─────────────────────────────────────────
 from .sqlTools import (
     run_sql_tool,
     plot_tool,
     get_data_state_list,
-    save_report_tool,
     list_output_files_tool,
-    exit_loop,
     get_understanding_report_tool,
     get_assessment_report_tool,
 )
@@ -73,7 +29,6 @@ logging.basicConfig(level=logging.ERROR)
 
 load_dotenv()
 
-# ── Model configurations ─────────────────────────────────────────────────────
 MODEL_CONFIGS = {
     "openrouter/xiaomi/mimo-v2-flash": {
         "api_key_env": "OPENROUTER_API_KEY",
@@ -91,7 +46,6 @@ MODEL_CONFIGS = {
 
 DEFAULT_MODEL = "openrouter/xiaomi/mimo-v2-flash"
 
-# ── Pydantic output schemas (model-independent) ──────────────────────────────
 class insightSchema(BaseModel):
     insight: str = Field(description="The insight derived from the data")
     evidence: Optional[str] = Field(default=None, description="The evidence supporting the insight")
@@ -115,7 +69,6 @@ class edaAgentOutputSchema(BaseModel):
         return v
 
 
-# ── Factory function ─────────────────────────────────────────────────────────
 def create_root_agent(model_name: str = DEFAULT_MODEL):
     """Create and return a fully wired root_agent using the specified LLM model."""
     config = MODEL_CONFIGS.get(model_name, MODEL_CONFIGS[DEFAULT_MODEL])
@@ -166,7 +119,7 @@ STRICT CONSTRAINTS:
 - No extra commentary before or after the report
 
 Output ONLY the Markdown report.
-    """,
+""",
         output_key="data_understanding",
         tools=[
             get_understanding_report_tool,
@@ -230,7 +183,7 @@ STRICT CONSTRAINTS:
 - Do NOT suggest unverifiable actions
 - Do NOT restate tool output verbatim
 - No extra text outside the report
-    """,
+""",
         output_key="data_assessment",
         tools=[
             get_data_state_list,
@@ -389,6 +342,9 @@ Produce a FINAL preprocessing report with EXACTLY these sections:
 
 ## Post-Cleaning Data Quality Assessment
 [Unmodified output from the second data_assessing_agent run]
+
+## Residual Issues (optional)
+[If post-cleaning validation still shows issues, list them here. Otherwise omit this section.]
 
 STRICT CONSTRAINTS:
 - Do NOT perform analysis or interpretation yourself
