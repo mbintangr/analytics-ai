@@ -12,10 +12,16 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
 
+  const [showHiddenFeatures, setShowHiddenFeatures] = useState(false);
+
   // Close mobile drawer when route changes
   useEffect(() => {
     setIsMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setShowHiddenFeatures(typeof window !== 'undefined' && localStorage.getItem('showHiddenFeatures') === 'true');
+  }, []);
 
   return (
     <>
@@ -72,7 +78,7 @@ export function Sidebar() {
         </nav>
 
         <div className="p-4 border-t flex flex-col gap-1" style={{ borderColor: "var(--surface-border)" }}>
-          <ThemeToggle />
+          {showHiddenFeatures && <ThemeToggle />}
           <LogoutButton />
         </div>
       </aside>

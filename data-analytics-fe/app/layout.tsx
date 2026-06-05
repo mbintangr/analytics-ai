@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable}`} data-theme="dark">
+    <html lang="en" className={`${spaceGrotesk.variable}`} data-theme="light">
       <head>
         {/* Prevent theme flash: apply stored theme before first paint */}
         <script

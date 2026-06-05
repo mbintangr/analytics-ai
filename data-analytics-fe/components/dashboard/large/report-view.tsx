@@ -51,6 +51,11 @@ export function ReportView({
   const [internalProcesses, setInternalProcesses] = React.useState<ProcessLog[]>([]);
   const [activeTab, setActiveTab] = React.useState<'report' | 'logs' | 'dataset' | 'graphs' | 'info'>('report');
   const [isRegenerating, setIsRegenerating] = React.useState(false);
+  const [showHiddenFeatures, setShowHiddenFeatures] = React.useState(false);
+
+  React.useEffect(() => {
+    setShowHiddenFeatures(typeof window !== 'undefined' && localStorage.getItem('showHiddenFeatures') === 'true');
+  }, []);
 
   React.useEffect(() => {
     if (status) setInternalStatus(status);
@@ -139,6 +144,9 @@ export function ReportView({
     );
   }
 
+  const allTabs = ["report", "dataset", "graphs", "logs", "info"] as const;
+  const visibleTabs = showHiddenFeatures ? allTabs : (["report", "logs"] as const);
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 md:pt-10 scroll-smooth h-full">
       <div
@@ -190,10 +198,10 @@ export function ReportView({
 
         {/* Tabs */}
         <div className="flex space-x-6 mb-8 border-b overflow-x-auto whitespace-nowrap" style={{ borderColor: "var(--surface-border)" }}>
-          {(["report", "dataset", "graphs", "logs", "info"] as const).map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab as any)}
               className={`hover:cursor-pointer pb-3 text-sm font-medium transition-colors border-b-2 ${
                 activeTab === tab
                   ? "border-primary text-primary"
@@ -201,7 +209,7 @@ export function ReportView({
               }`}
               style={activeTab !== tab ? { color: "var(--text-secondary)" } : undefined}
             >
-              {tab === "report" ? "Report View" : tab === "dataset" ? "Data Viewer" : tab === "graphs" ? "Generated Graphs" : tab === "logs" ? "System Logs" : "Project Info"}
+              {(tab as string) === "report" ? "Report View" : (tab as string) === "dataset" ? "Data Viewer" : (tab as string) === "graphs" ? "Generated Graphs" : (tab as string) === "logs" ? "System Logs" : "Project Info"}
             </button>
           ))}
         </div>
