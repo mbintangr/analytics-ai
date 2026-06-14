@@ -1,8 +1,7 @@
 from google.adk.agents.callback_context import CallbackContext
-from google.genai import types # For types.Content
+from google.genai import types
 from typing import Optional
 
-# --- 1. Define the Callback Function ---
 def log_after_agent_execution(callback_context: CallbackContext) -> Optional[types.Content]:
     """
     Logs the after agent execution to the database.
@@ -13,7 +12,6 @@ def log_after_agent_execution(callback_context: CallbackContext) -> Optional[typ
     print(f"[Callback] Exiting agent: {agent_name}")
     print(f"[Callback] Final State: {current_state}")
 
-    # Log to Database
     try:
         session_id = current_state.get("session_id")
         if session_id:
@@ -22,7 +20,6 @@ def log_after_agent_execution(callback_context: CallbackContext) -> Optional[typ
             import uuid
             import math
             
-            # Simple serializer for non-serializable objects
             def json_serial(obj):
                 if isinstance(obj, (datetime.date, datetime.datetime)):
                     return obj.isoformat()

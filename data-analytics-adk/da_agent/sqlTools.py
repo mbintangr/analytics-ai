@@ -1,13 +1,3 @@
-"""
-SQL-based tools for the data analytics agent.
-
-These tools replace the 30+ Pandas-based tools with 2 core tools:
-- run_sql_tool: Execute any SQL query against registered data tables
-- plot_tool: Execute SQL + render a plot from the small result set
-
-Plus kept helpers for state management, reporting, and file I/O.
-"""
-
 import os
 import json
 import gc
@@ -27,9 +17,6 @@ from .dataTools import (
     save_text_to_file,
 )
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
 def _truncate_output(data: str, max_chars: int = 5000) -> str:
     """Truncate the output string to a maximum number of characters."""
     if len(data) <= max_chars:
@@ -43,8 +30,6 @@ def _get_engine(tool_context: ToolContext):
     if engine is None:
         raise ValueError("DuckDB engine not found in tool context state. Ensure it was initialized in tasks.py.")
     
-    # Auto-discover and register any parquet files in output_dir
-    # This syncs state across sub-agents since ADK might not merge state mutations from sub-agents.
     output_dir = tool_context.state.get("output_dir")
     if output_dir and os.path.exists(output_dir):
         import glob
@@ -55,11 +40,9 @@ def _get_engine(tool_context: ToolContext):
             table_name = os.path.splitext(os.path.basename(p_file))[0]
             p_file_safe = p_file.replace("\\", "/")
             
-            # Register in DuckDB engine if missing
             if table_name not in engine._registered_tables:
                 engine.register_parquet(table_name, p_file_safe)
             
-            # Update data_state if missing
             if table_name not in data_state:
                 data_state[table_name] = {
                     "path": p_file_safe,
@@ -82,9 +65,8 @@ def _format_query_result(result: dict) -> str:
     if not rows:
         return f"Columns: {columns}\n(No rows returned)"
 
-    # Format as a text table
     col_widths = [len(str(c)) for c in columns]
-    for row in rows[:50]:  # Only measure first 50 rows for width
+    for row in rows[:50]:
         for i, val in enumerate(row):
             str_val = str(val if val is not None else "NULL").replace("|", "\\|").replace("\n", " ")[:40]
             col_widths[i] = min(max(col_widths[i], len(str_val)), 40)
@@ -106,9 +88,6 @@ def _format_query_result(result: dict) -> str:
         output += f"\n... [Truncated: showing {result['row_count']} of more rows]"
 
     return output
-
-
-# ── Core Tools ────────────────────────────────────────────────────────────────
 
 def run_sql_tool(
     tool_context: ToolContext,
@@ -146,7 +125,6 @@ def run_sql_tool(
         engine = _get_engine(tool_context)
 
         if save_as:
-            # Save query result as a new Parquet file and register as table
             output_dir = tool_context.state.get("output_dir", "outputs")
             os.makedirs(output_dir, exist_ok=True)
             output_path = os.path.join(output_dir, f"{save_as}.parquet")
@@ -154,7 +132,6 @@ def run_sql_tool(
             engine.save_query_as_parquet(sql, output_path)
             engine.register_parquet(save_as, output_path)
 
-            # Update data_state
             data_state = tool_context.state.get("data_state", {})
             data_state[save_as] = {
                 "path": output_path,
@@ -162,13 +139,11 @@ def run_sql_tool(
             }
             tool_context.state["data_state"] = data_state
 
-            # Get row count of new table
             count_result = engine.execute_query(f'SELECT COUNT(*) as cnt FROM "{save_as}"')
             row_count = count_result["rows"][0][0] if count_result["rows"] else "unknown"
 
             return f"Query result saved as table '{save_as}' ({row_count} rows) at {output_path}"
         else:
-            # Read-only query
             result = engine.execute_query(sql)
             return _truncate_output(_format_query_result(result))
 
@@ -177,10 +152,46 @@ def run_sql_tool(
 
 
 def plot_tool(
-    tool_context: ToolContext, sql: str, plot_type: str, x: str, y: str = None,
-    hue: str = None, title: str = None, xlabel: str = None, ylabel: str = None,
-    color: str = None, palette: str = None, save_path: str = None,
+    tool_context: ToolContext,
+    sql: str,
+    plot_type: str,
+    x: str,
+    y: str = None,
+    hue: str = None,
+    title: str = None,
+    xlabel: str = None,
+    ylabel: str = None,
+    color: str = None,
+    palette: str = None,
+    save_path: str = None,
 ) -> str:
+    """
+    Execute a SQL query and plot the results. The SQL query should return a
+    SMALL result set suitable for plotting (ideally < 100 rows).
+
+    The query should pre-aggregate or filter the data so that only the data
+    needed for the plot is returned. For example:
+    - For a bar chart: SELECT category, AVG(value) as avg_value FROM data GROUP BY category ORDER BY avg_value DESC LIMIT 20
+    - For a histogram: SELECT column FROM data (DuckDB will handle binning via the plot library)
+    - For a scatter: SELECT x_col, y_col FROM data USING SAMPLE 500
+
+    Args:
+        tool_context: The tool context.
+        sql: SQL query returning the data to plot. Must be pre-aggregated/filtered.
+        plot_type: Type of plot: 'bar', 'line', 'scatter', 'histogram', 'box', 'pie', 'heatmap', 'count'.
+        x: Column name for x-axis (from query results).
+        y: Column name for y-axis (from query results). Not needed for histogram/count/pie.
+        hue: Column name for color grouping (optional).
+        title: Plot title (optional).
+        xlabel: X-axis label (optional).
+        ylabel: Y-axis label (optional).
+        color: Single color for the plot (optional).
+        palette: Color palette name or JSON dict (optional).
+        save_path: Filename to save the plot (e.g., 'revenue_by_category.png'). Auto-generated if not provided.
+
+    Returns:
+        Message indicating success and the saved filename.
+    """
     try:
         print(f"Tool 'plot_tool' called with plot_type={plot_type}, x={x}, y={y}")
         engine = _get_engine(tool_context)
@@ -199,7 +210,7 @@ def plot_tool(
                 import ast
                 palette = ast.literal_eval(palette)
             except (ValueError, SyntaxError):
-                pass  # Keep as string (palette name)
+                pass
 
         if not save_path:
             safe_x = "".join(c for c in x if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
@@ -216,27 +227,21 @@ def plot_tool(
         warning = None
 
         if plot_type == "bar":
-            warning = plot_bar(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, 
-                               palette=palette, save_path=save_path)
+            warning = plot_bar(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "line":
-            warning = plot_line(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, 
-                                palette=palette, save_path=save_path)
+            warning = plot_line(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "scatter":
-            warning = plot_scatter(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, 
-                                   palette=palette, save_path=save_path)
+            warning = plot_scatter(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "histogram":
-            warning = plot_histogram(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, color=color, palette=palette, 
-                                     save_path=save_path)
+            warning = plot_histogram(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "box":
-            warning = plot_box(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, 
-                               palette=palette, save_path=save_path)
+            warning = plot_box(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "pie":
             warning = plot_pie(plot_df, labels=x, values=y, title=title, palette=palette, save_path=save_path)
         elif plot_type == "heatmap":
             plot_heatmap(plot_df, title=title, cmap=palette or "coolwarm", save_path=save_path)
         elif plot_type == "count":
-            warning = plot_count(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, 
-                                 palette=palette, save_path=save_path)
+            warning = plot_count(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         else:
             return f"Error: Unsupported plot type '{plot_type}'. Use: bar, line, scatter, histogram, box, pie, heatmap, count."
 
@@ -255,6 +260,13 @@ def plot_tool(
 def get_understanding_report_tool(
     tool_context: ToolContext, table_name: str = "raw_data"
 ) -> dict:
+    """
+    Get an understanding report for the data state.
+
+    Args:
+        tool_context: The tool context.
+        table_name: The name of the table to analyze. Defaults to 'raw_data'.
+    """
     try:
         print(f"Tool 'get_understanding_report_tool' called for table={table_name}")
         engine = _get_engine(tool_context)
@@ -267,8 +279,7 @@ def get_understanding_report_tool(
 
         summarize_res = engine.execute_query(f'SUMMARIZE "{table_name}"')
         data_description = {
-            "count": {}, "mean": {}, "std": {}, "min": {}, "25%": {}, "50%": {},
-            "75%": {}, "max": {}, "unique": {}, "null_percentage": {}
+            "count": {}, "mean": {}, "std": {}, "min": {}, "25%": {}, "50%": {}, "75%": {}, "max": {}, "unique": {}, "null_percentage": {}
         }
         if summarize_res.get("rows"):
             for row in summarize_res["rows"]:
@@ -306,6 +317,13 @@ def get_understanding_report_tool(
 def get_assessment_report_tool(
     tool_context: ToolContext, table_name: str = "raw_data"
 ) -> dict:
+    """
+    Get an assessment report for the data state.
+
+    Args:
+        tool_context: The tool context.
+        table_name: The name of the table to analyze. Defaults to 'raw_data'.
+    """
     try:
         print(f"Tool 'get_assessment_report_tool' called for table={table_name}")
         engine = _get_engine(tool_context)
@@ -379,8 +397,6 @@ def get_assessment_report_tool(
         return {"error": f"Error executing tool 'get_assessment_report_tool': {str(e)}"}
 
 
-# ── Kept Helper Tools (not replaceable by SQL) ───────────────────────────────
-
 def get_data_state_list(tool_context: ToolContext) -> list[dict[str, str]]:
     """
     Get a list of data tables available for querying.
@@ -390,7 +406,6 @@ def get_data_state_list(tool_context: ToolContext) -> list[dict[str, str]]:
     """
     try:
         print("Tool 'get_data_state_list' called")
-        # Call _get_engine to auto-discover any new datasets saved by other agents
         _get_engine(tool_context)
         
         if "data_state" not in tool_context.state:
@@ -401,34 +416,6 @@ def get_data_state_list(tool_context: ToolContext) -> list[dict[str, str]]:
         return state_list
     except Exception as e:
         return [{"error": f"Error: {str(e)}"}]
-
-
-# def save_report_tool(
-#     tool_context: ToolContext,
-#     content: str,
-#     filename: str,
-# ) -> str:
-#     """
-#     Save the analysis report to a markdown file.
-
-#     Args:
-#         tool_context: The tool context.
-#         content: The text content of the report.
-#         filename: The filename to save the report as.
-
-#     Returns:
-#         Message indicating success.
-#     """
-#     try:
-#         print(f"Tool 'save_report_tool' called with filename={filename}")
-#         output_dir = tool_context.state.get("output_dir", "")
-#         if output_dir:
-#             filename = os.path.join(output_dir, filename)
-#             os.makedirs(output_dir, exist_ok=True)
-#         save_text_to_file(content, filename)
-#         return f"Report saved to {filename}"
-#     except Exception as e:
-#         return f"Error: {str(e)}"
 
 
 def list_output_files_tool(tool_context: ToolContext) -> list[str]:
@@ -446,16 +433,3 @@ def list_output_files_tool(tool_context: ToolContext) -> list[str]:
         return [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f))]
     except Exception as e:
         return [f"Error: {str(e)}"]
-
-
-# def exit_loop(tool_context: ToolContext):
-#     """
-#     Call this function ONLY when the upstream agent has explicitly signaled
-#     that the data cleaning process is complete.
-#     """
-#     try:
-#         print(f"Tool 'exit_loop' called")
-#         tool_context.actions.escalate = True
-#         return {"exit_loop": "Data cleaning process is complete."}
-#     except Exception as e:
-#         return {"error": f"Error: {str(e)}"}

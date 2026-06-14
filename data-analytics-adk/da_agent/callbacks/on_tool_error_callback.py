@@ -23,10 +23,7 @@ def handle_tool_error(
 
     print(f"[Callback] Tool error in '{tool_name}': {error_str[:200]}")
 
-    # ── Case 1: Tool name not found (hallucinated / corrupted name) ───────────
     if "not found" in error_str and "Available tools" in error_str:
-        # Extract the available tools list from the error message so the LLM
-        # knows exactly what it can call.
         correction_msg = (
             f"[TOOL ERROR - SELF CORRECT REQUIRED]\n"
             f"You called a tool named '{tool_name}' which does not exist.\n"
@@ -39,7 +36,4 @@ def handle_tool_error(
         )
         return {"result": correction_msg}
 
-    # ── Case 2: Any other tool exception — surface it to the LLM ─────────────
-    # Returning None here lets ADK re-raise the original exception as before,
-    # which is the correct behavior for unexpected errors.
     return None

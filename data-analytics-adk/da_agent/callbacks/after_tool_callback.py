@@ -4,7 +4,6 @@ from google.adk.tools.base_tool import BaseTool
 from typing import Dict, Any
 from copy import deepcopy
 
-# --- Define the Callback Function ---
 def log_after_tool_execution(
     tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext, tool_response: Dict
 ) -> Optional[Dict]:
@@ -15,9 +14,7 @@ def log_after_tool_execution(
     print(f"[Callback] Exiting tool: {tool_name} in agent {agent_name}")
     print(f"[Callback] Tool Response: {tool_response}")
 
-    # Log to Database
     try:
-        # tool_context might have state, check for it
         state = getattr(tool_context, "state", {})
         if hasattr(state, "to_dict"):
              state = state.to_dict()
@@ -25,7 +22,6 @@ def log_after_tool_execution(
         session_id = state.get("session_id")
 
         if not session_id:
-             # Fallback: check if session_id is directly on tool_context (legacy check)
              session_id = getattr(tool_context, "session_id", None)
 
         if session_id:
@@ -41,16 +37,6 @@ def log_after_tool_execution(
                 if isinstance(obj, float) and math.isnan(obj):
                     return None
                 return str(obj)
-
-            # Pre-process dict to remove NaNs at top level if needed, 
-            # but json.dumps with allow_nan=False (default is True in Python, invalid for JSON standard/Postgres) 
-            # or custom encoder is better. 
-            # Postgres rejects NaN. Python's json.dumps produces NaN by default.
-            # We need to replace NaN with None in the data structure or use a custom encoder that handles it, 
-            # BUT json.dump's default encoder doesn't call 'default' for floats.
-            # So we must traverse and replace or use use simplejson with ignore_nan=True (which produces null) 
-            # or just stringify if we can't easily recurse.
-            # Simplest for now: simple recursive replacement.
 
             def sanitize_for_json(obj):
                 if isinstance(obj, float):

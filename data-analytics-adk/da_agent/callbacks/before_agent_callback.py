@@ -1,9 +1,7 @@
-# ADK Imports
 from google.adk.agents.callback_context import CallbackContext
-from google.genai import types # For types.Content
+from google.genai import types
 from typing import Optional
 
-# --- 1. Define the Callback Function ---
 def log_before_agent_execution(callback_context: CallbackContext) -> Optional[types.Content]:
     """
     Logs the before agent execution to the database.
@@ -14,7 +12,6 @@ def log_before_agent_execution(callback_context: CallbackContext) -> Optional[ty
     print(f"\n[Callback] Entering agent: {agent_name}")
     print(f"[Callback] Session ID: {current_state.get('session_id', 'Not Found')}")
 
-    # Log to Database
     try:
         session_id = current_state.get("session_id")
         if session_id:
