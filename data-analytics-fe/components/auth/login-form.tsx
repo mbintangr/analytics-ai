@@ -29,6 +29,7 @@ export function LoginForm() {
       onSuccess: () => {
         setLoading(false);
         router.push("/");
+        router.refresh();
       },
       onError: (ctx) => {
         setLoading(false);
