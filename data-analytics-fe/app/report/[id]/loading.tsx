@@ -7,12 +7,10 @@ export default function Loading() {
     <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
       <main className="flex-1 h-full flex relative overflow-hidden">
-        {/* Main Report Area */}
         <div className="flex-1 h-full overflow-y-auto">
           <ReportViewSkeleton />
         </div>
 
-        {/* Table of Contents Sidebar */}
         <TableOfContentsSkeleton />
       </main>
     </div>

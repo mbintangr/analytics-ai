@@ -141,7 +141,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-300">
 
-      {/* Header: Title + Dataset Selector + Export */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Dataset Preview</h3>
@@ -151,7 +150,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
         </div>
 
         <div className="flex w-full sm:w-auto items-stretch gap-2 shrink-0">
-          {/* Dataset select box */}
           <div className="relative flex-1 sm:flex-none min-w-0 flex flex-col">
             {tablesLoading ? (
               <div
@@ -197,7 +195,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
                   />
                 </button>
 
-                {/* Dropdown */}
                 {isSelectOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsSelectOpen(false)} />
@@ -261,7 +258,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
             )}
           </div>
 
-          {/* Export CSV Button */}
           <button
             onClick={handleExportCsv}
             disabled={isExporting || !data || data.rows.length === 0}
@@ -279,7 +275,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
         </div>
       </div>
 
-      {/* Stats bar */}
       {data && !loading && (
         <div className="flex items-center gap-3 mb-3 text-xs" style={{ color: "var(--text-muted)" }}>
           <span>
@@ -300,7 +295,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
         </div>
       )}
 
-      {/* Table Area */}
       <div
         className="flex-1 overflow-auto rounded-xl backdrop-blur-sm min-h-[400px] border"
         style={{ borderColor: "var(--surface-border)", background: "var(--surface-inset)" }}
@@ -382,7 +376,6 @@ export function DatasetTable({ reportId }: DatasetTableProps) {
         )}
       </div>
 
-      {/* Pagination Controls */}
       <div className="flex items-center justify-between mt-4">
         <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
           {data ? (

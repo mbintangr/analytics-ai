@@ -71,28 +71,22 @@ model AnalysisSession {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  title            String // e.g., "Sales Q3 Analysis"
+  title            String
   originalFileName String
 
-  // MinIO Object Paths
-  datasetPath String // "uploads/user_123/sales.csv"
-  reportPath  String? // "outputs/session_abc/report.md"
+  datasetPath String
+  reportPath  String?
 
-  // Status tracking
   status     String    @default("PROCESSING")
   createdAt  DateTime  @default(now())
   finishedAt DateTime?
 
-  // Business questions for regeneration
   businessQuestions String? @db.Text
 
-  // Celery task ID for cancellation
   celeryTaskId String?
 
-  // LLM model used for analysis
   modelName String?
 
-  // Metrics for the dashboard
   durationSeconds Float?
   totalTokens     Int?
 

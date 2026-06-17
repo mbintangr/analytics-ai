@@ -13,13 +13,10 @@ export function SignupSidebar() {
         borderColor: "var(--surface-border)",
       }}
     >
-      {/* Decorative tech grid lines */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(13,89,242,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(13,89,242,0.05)_1px,transparent_1px)] bg-size-[40px_40px] pointer-events-none opacity-50"></div>
 
-      {/* Header Brand */}
       <Logo />
 
-      {/* Value Props */}
       <div className="flex flex-col gap-10 z-10 my-auto">
         <div className="flex flex-col gap-3">
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight" style={{ color: "var(--text-primary)" }}>
@@ -32,7 +29,6 @@ export function SignupSidebar() {
           </p>
         </div>
         <div className="space-y-4">
-          {/* Feature 1 */}
           <div
             className="flex gap-4 items-start p-4 rounded-lg border hover:border-primary/40 transition-all duration-300 group cursor-default"
             style={{
@@ -52,7 +48,6 @@ export function SignupSidebar() {
               </p>
             </div>
           </div>
-          {/* Feature 2 */}
           <div
             className="flex gap-4 items-start p-4 rounded-lg border hover:border-primary/40 transition-all duration-300 group cursor-default"
             style={{
@@ -75,7 +70,6 @@ export function SignupSidebar() {
         </div>
       </div>
 
-      {/* Footer Text */}
       <div className="z-10 flex justify-between items-end border-t pt-6" style={{ borderColor: "var(--surface-border)" }}>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "var(--text-muted)" }}>

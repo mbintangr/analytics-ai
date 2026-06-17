@@ -149,7 +149,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
     <div className={cn("relative flex h-full w-full flex-col overflow-hidden font-display selection:bg-primary selection:text-white", className)}
       style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}
     >
-      {/* Grid Background */}
       <div className="fixed inset-0 pointer-events-none z-0 h-full w-full opacity-40"
         style={{
           backgroundImage: `linear-gradient(rgba(13, 89, 242, 0.05) 1px, transparent 1px),
@@ -164,7 +163,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
 
       <div className="relative flex h-full w-full flex-col z-10 p-4 pt-20 md:p-12 md:pt-12 gap-6 overflow-hidden">
 
-        {/* Header Info Card */}
         <div className="w-full md:w-fit md:min-w-[600px] mx-auto z-20 flex flex-col gap-4 shrink-0">
           <div
             className="flex flex-col gap-1 backdrop-blur-md border p-4 rounded-xl shadow-2xl w-full"
@@ -187,7 +185,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
             </div>
           </div>
 
-          {/* Logs Toggle + Cancel */}
           <div className="flex flex-wrap items-center justify-center gap-3 w-full">
             <button
               onClick={() => setShowLogs(!showLogs)}
@@ -209,7 +206,6 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
           </div>
         </div>
 
-        {/* Main Content Area */}
         <main
           className="flex-1 w-full relative overflow-y-auto overflow-x-hidden flex flex-col pb-4 md:pb-0"
         >
@@ -238,12 +234,9 @@ export function ProcessingView({ className, status = "PROCESSING", filename, cre
               <ProcessLogsTable logs={logs} className="flex-1 p-0" autoScroll={true} projectName={filename} />
             </div>
           ) : (
-            /* Progress Nodes */
             <div className="w-full max-w-5xl mx-auto h-full flex flex-col items-center justify-start md:justify-center p-4 sm:p-12 min-h-[400px]">
               <div className="w-full max-w-lg md:max-w-3xl relative flex flex-col items-start gap-12 md:gap-20 h-auto py-8 md:py-16 pl-8 sm:pl-12 md:pl-20 animate-in fade-in zoom-in duration-500 mx-auto">
-                {/* Connector Lines */}
                 <div className="absolute left-[63px] sm:left-[79px] md:left-[127px] top-16 md:top-24 bottom-16 md:bottom-24 w-0.5 md:w-1 z-0" style={{ background: "var(--surface-border)" }}></div>
-                {/* Active Beam Line */}
                 <div
                   className="absolute left-[63px] sm:left-[79px] md:left-[127px] top-16 md:top-24 w-0.5 md:w-1 bg-linear-to-b from-secondary via-secondary to-primary z-0 shadow-[0_0_10px_rgba(13,89,242,0.6)] opacity-50 transition-all duration-1000 ease-in-out"
                   style={{ height: getProgressHeight() }}
@@ -325,7 +318,6 @@ function StatusNode({ title, status, icon, detail }: { title: string, status: St
     );
   }
 
-  // Pending
   return (
     <div className="relative z-10 flex flex-row items-center gap-6 md:gap-10 group w-full pl-1 md:pl-2">
       <div

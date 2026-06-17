@@ -49,7 +49,6 @@ export function DashboardContent({
   }, []);
 
   const handleProjectClick = (project: Project) => {
-    // Allow navigation for Completed and Processing projects
     if (project.status !== "Failed") {
       router.push(`/report/${project.id}`);
     }
@@ -75,7 +74,6 @@ export function DashboardContent({
 
       if (res.ok) {
         setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
-        // Also update stats if needed, but let's wait for next fetch cycle
       }
     } catch (error) {
       console.error("Error deleting project:", error);

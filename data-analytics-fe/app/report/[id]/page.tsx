@@ -37,7 +37,6 @@ export default async function ReportPage({
     totalTokens: number | null;
   } | null = null;
 
-  // 1. Fetch status from DB
   try {
     const analysisSession = await prisma.analysisSession.findUnique({
       where: { id },
@@ -72,14 +71,12 @@ export default async function ReportPage({
       }
     }
   } catch (error) {
-    // If redirect throws, let it bubble up (Next.js redirects are exceptions)
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
       throw error;
     }
     console.error("Error fetching session status:", error);
   }
 
-  // 2. Fetch report content (if likely completed or checking)
   try {
     const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
     const res = await fetch(`${backendUrl}/report/${id}`, {
@@ -108,7 +105,6 @@ export default async function ReportPage({
     <div className="flex h-screen w-full font-display antialiased overflow-hidden" style={{ background: "var(--surface-base)", color: "var(--text-primary)" }}>
       <Sidebar />
       <main className="flex-1 h-full flex relative overflow-hidden pt-16 md:pt-0 flex-col md:flex-row">
-        {/* Main Report Area */}
         <div className="flex-1 h-full overflow-y-auto">
           <ReportView
             reportContent={reportContent}
@@ -122,7 +118,6 @@ export default async function ReportPage({
           />
         </div>
 
-        {/* Table of Contents Sidebar */}
         {status === "COMPLETED" && reportContent && <TableOfContents content={reportContent} />}
       </main>
     </div>

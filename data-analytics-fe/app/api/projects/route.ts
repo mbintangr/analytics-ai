@@ -17,7 +17,6 @@ export async function GET(request: Request) {
   const search = searchParams.get("search");
 
   try {
-    // 1. Calculate global stats (ignoring search filter)
     const allSessions = await prisma.analysisSession.findMany({
       where: { userId: session.user.id },
     });
@@ -36,7 +35,6 @@ export async function GET(request: Request) {
       successRate: successRate,
     };
 
-    // 2. Fetch projects (with optional search filter)
     const where: any = {
       userId: session.user.id,
     };
@@ -109,7 +107,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Verify ownership
     const project = await prisma.analysisSession.findUnique({
       where: { id },
     });
@@ -122,7 +119,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Call Python backend to delete files
     const backendUrl =
       process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
@@ -178,7 +174,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Title too long" }, { status: 400 });
     }
 
-    // Verify ownership
     const project = await prisma.analysisSession.findUnique({
       where: { id },
     });

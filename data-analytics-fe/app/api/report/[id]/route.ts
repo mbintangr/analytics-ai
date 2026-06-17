@@ -17,8 +17,6 @@ export async function GET(
   const { id } = await params;
 
   try {
-    // Assuming python backend is at localhost:8000
-    // Adjust URL if needed or use env var
     const backendUrl =
       process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
@@ -36,7 +34,6 @@ export async function GET(
 
     const data = await res.json();
 
-    // Fetch process logs from Prisma
     try {
       const { prisma } = await import("@/lib/prisma");
       const processes = await prisma.analysisProcess.findMany({
@@ -50,8 +47,6 @@ export async function GET(
       data.processes = processes;
     } catch (dbError) {
       console.error("Error fetching process logs:", dbError);
-      // Determine if we should fail the request or just log the error and continue without logs.
-      // For now, let's continue without logs to allow report view to function.
       data.processes = [];
     }
 

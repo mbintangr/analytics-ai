@@ -22,7 +22,6 @@ export default async function LoginPage() {
 
       <div className="relative z-20 w-full max-w-[460px]">
         <GlassCard>
-          {/* Header Section */}
           <div className="flex flex-col items-center text-center gap-2">
             <div 
               className="flex items-center justify-center size-12 rounded-xl border mb-4 shadow-lg"
@@ -40,7 +39,6 @@ export default async function LoginPage() {
 
           <LoginForm />
 
-          {/* Footer / Sign Up */}
           <div className="text-center">
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               New to the network?
@@ -57,7 +55,6 @@ export default async function LoginPage() {
         </GlassCard>
       </div>
 
-      {/* Decorative footer text */}
       <div className="mt-8 flex items-center gap-2 text-slate-600 text-xs font-mono uppercase tracking-widest opacity-60 relative z-20">
         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
         Online v1.0

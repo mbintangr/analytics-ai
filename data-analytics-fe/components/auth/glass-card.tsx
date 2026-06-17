@@ -14,7 +14,6 @@ export function GlassCard({ children, className = "" }: GlassCardProps) {
         border: "1px solid var(--glass-border)",
       }}
     >
-      {/* Subtle top highlight line */}
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
       {children}
     </div>

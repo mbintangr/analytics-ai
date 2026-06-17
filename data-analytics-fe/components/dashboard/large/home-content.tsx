@@ -91,7 +91,6 @@ export function HomeContent({ userName, userId, recentProjects: initialProjects 
         Ready to start your data journey? Click to upload your dataset below.
       </p>
 
-      {/* Upload trigger bar */}
       <div
         onClick={() => setIsModalOpen(true)}
         className="w-full max-w-2xl rounded-full pl-6 pr-2 py-2 flex items-center justify-between cursor-pointer hover:border-primary transition-all shadow-md hover:shadow-primary/10 group mb-16 border"
@@ -114,7 +113,6 @@ export function HomeContent({ userName, userId, recentProjects: initialProjects 
         userId={userId}
       />
 
-      {/* Project Cards */}
       {projects.length > 0 && (
         <div className="w-full text-left">
           <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: "var(--text-primary)" }}>

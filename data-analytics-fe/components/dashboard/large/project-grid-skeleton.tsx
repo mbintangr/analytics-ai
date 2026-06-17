@@ -20,7 +20,6 @@ export function ProjectGridSkeleton() {
               borderColor: "var(--surface-border)",
             }}
           >
-            {/* Thumbnail placeholder */}
             <div
               className="h-28 w-full rounded-xl animate-pulse"
               style={{ background: "var(--surface-deep)" }}

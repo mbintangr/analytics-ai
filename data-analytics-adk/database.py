@@ -7,13 +7,6 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def get_db_connection():
-    """
-    Context manager for database connections.
-    Usage:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(...)
-    """
     conn = None
     try:
         conn = psycopg2.connect(DATABASE_URL)

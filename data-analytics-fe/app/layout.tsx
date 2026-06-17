@@ -22,7 +22,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${spaceGrotesk.variable}`} data-theme="light">
       <head>
-        {/* Prevent theme flash: apply stored theme before first paint */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,

@@ -40,7 +40,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
-  // Prevent flash by hiding until mounted (the html already has data-theme="dark" from the script below)
   if (!mounted) return <>{children}</>;
 
   return (

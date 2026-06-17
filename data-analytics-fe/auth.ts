@@ -10,7 +10,6 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  // Add other providers here if needed
   logger: {
     level: "debug",
     log: (level, message, ...args) => {

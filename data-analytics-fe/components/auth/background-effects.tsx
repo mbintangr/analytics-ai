@@ -3,13 +3,11 @@ import React from "react";
 export function BackgroundEffects() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-      {/* Abstract glowing orbs */}
       <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] animate-pulse-slow"></div>
       <div
         className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] rounded-full bg-purple-600/10 blur-[120px] animate-pulse-slow"
         style={{ animationDelay: "2s" }}
       ></div>
-      {/* Grid overlay representing data network */}
       <div
         className="absolute inset-0 z-0 opacity-20"
         style={{

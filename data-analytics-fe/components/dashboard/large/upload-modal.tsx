@@ -25,13 +25,11 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-md transition-opacity"
         style={{ background: "rgba(0,0,0,0.5)" }}
       />
 
-      {/* Modal Container */}
       <div
         className="relative z-20 flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-xl border shadow-2xl animate-in fade-in zoom-in duration-300"
         style={{
@@ -39,7 +37,6 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
           borderColor: "var(--surface-border)",
         }}
       >
-        {/* Modal Header */}
         <div
           className="flex items-center justify-between border-b px-6 py-4"
           style={{
@@ -62,7 +59,6 @@ export function UploadModal({ isOpen, onClose, userId }: UploadModalProps) {
           </button>
         </div>
 
-        {/* Modal Body */}
         <UploadView
           userId={userId}
           onUploadSuccess={handleUploadSuccess}

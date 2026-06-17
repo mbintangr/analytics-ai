@@ -54,7 +54,6 @@ export function SignupForm() {
       </div>
 
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-        {/* Name Input */}
         <NeonInput
           id="name"
           type="text"
@@ -66,7 +65,6 @@ export function SignupForm() {
           onChange={(e) => setName(e.target.value)}
         />
 
-        {/* Email Input */}
         <NeonInput
           id="email"
           type="email"
@@ -78,7 +76,6 @@ export function SignupForm() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Password Input */}
         <div className="flex flex-col gap-2">
           <label
             className="text-xs uppercase tracking-wider font-semibold pl-1"
@@ -127,7 +124,6 @@ export function SignupForm() {
           </div>
         )}
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
@@ -140,7 +136,6 @@ export function SignupForm() {
         </button>
       </form>
 
-      {/* Bottom Link */}
       <div className="text-center">
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
           Already have an account?{" "}

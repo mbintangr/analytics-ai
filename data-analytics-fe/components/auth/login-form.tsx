@@ -44,7 +44,6 @@ export function LoginForm() {
 
   return (
     <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-      {/* Email Field */}
       <NeonInput
         id="email"
         type="email"
@@ -56,7 +55,6 @@ export function LoginForm() {
         onChange={(e) => setEmail(e.target.value)}
       />
 
-      {/* Password Field */}
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-center pl-1">
           <label
@@ -107,7 +105,6 @@ export function LoginForm() {
         </div>
       )}
 
-      {/* Submit Button */}
       <button
         type="submit"
         disabled={loading}

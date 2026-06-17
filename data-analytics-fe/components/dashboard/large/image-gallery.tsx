@@ -103,7 +103,6 @@ export function ImageGallery({ reportId }: ImageGalleryProps) {
               onClick={() => setSelectedImage(img.name)}
             >
               <div className="w-full h-48 bg-black/5 flex items-center justify-center p-2 relative overflow-hidden" style={{ background: "var(--surface-deep)" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={imgUrl} 
                   alt={displayName} 
@@ -111,7 +110,6 @@ export function ImageGallery({ reportId }: ImageGalleryProps) {
                   loading="lazy"
                 />
                 
-                {/* Download Overlay Button */}
                 <button 
                   onClick={(e) => handleDownload(img.name, e)}
                   className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary"
@@ -130,7 +128,6 @@ export function ImageGallery({ reportId }: ImageGalleryProps) {
         })}
       </div>
 
-      {/* Fullscreen Modal */}
       {mounted && selectedImage && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 backdrop-blur-md animate-in fade-in"
@@ -148,7 +145,6 @@ export function ImageGallery({ reportId }: ImageGalleryProps) {
             className="relative max-w-full max-h-full flex flex-col items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={`/api/report/${reportId}/image?filename=${encodeURIComponent(selectedImage)}`} 
               alt={selectedImage} 

@@ -124,7 +124,7 @@ export function ProjectCard({
   };
 
   const getThumbnailBg = () => {
-    if (type === "error") return undefined; // handled via style
+    if (type === "error") return undefined;
     return undefined;
   };
 
@@ -137,7 +137,6 @@ export function ProjectCard({
         borderColor: "var(--surface-border)",
       }}
     >
-      {/* Thumbnail Area */}
       <div
         className="h-40 w-full relative p-4 flex items-center justify-center overflow-hidden"
         style={{
@@ -174,7 +173,6 @@ export function ProjectCard({
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-5 flex flex-col gap-3 flex-1">
         <div>
           <h4

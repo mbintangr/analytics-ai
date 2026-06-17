@@ -7,7 +7,6 @@ def list_tables():
         conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
         
-        # Query to list all tables in the current database's public schema
         cur.execute("""
             SELECT table_name 
             FROM information_schema.tables 
