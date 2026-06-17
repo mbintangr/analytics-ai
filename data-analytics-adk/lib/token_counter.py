@@ -3,7 +3,6 @@ import glob
 import tiktoken
 
 def count_tokens_in_file(filename, enc):
-    # Read the file as a raw string
     with open(filename, 'r', encoding='utf-8', errors='replace') as f:
         text = f.read()
     
@@ -14,18 +13,15 @@ def count_tokens_in_file(filename, enc):
     return char_count, token_count
 
 def generate_report():
-    # Get the directory of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_dir = os.path.join(current_dir, "sales_dataset")
     
-    # Find all CSV files
     csv_files = glob.glob(os.path.join(dataset_dir, "*.csv"))
     
     if not csv_files:
         print(f"No CSV files found in {dataset_dir}")
         return
 
-    # Initialize Tokenizer (GPT-4 encoding)
     print("Initializing tokenizer...")
     enc = tiktoken.get_encoding("cl100k_base")
     
@@ -41,14 +37,12 @@ def generate_report():
 
         print(f"File: {filename}, Characters: {char_count:,}, Tokens: {token_count:,}")
         
-        # Save individual report for each dataset
         base_name = os.path.splitext(filename)[0]
         ind_report_path = os.path.join(dataset_dir, f"{base_name}_token_report.txt")
         ind_report_text = f"File: {filename}\nCharacters: {char_count:,}\nTokens: {token_count:,}\n"
         with open(ind_report_path, "w", encoding="utf-8") as ind_f:
             ind_f.write(ind_report_text)
     
-    # Generate report string
     report_lines = []
     report_lines.append("--- Token Count Report ---")
     report_lines.append(f"{'Filename':<40} | {'Characters':<15} | {'Tokens':<15}")
@@ -66,10 +60,8 @@ def generate_report():
     
     report_text = "\n".join(report_lines)
     
-    # Print the report
     print(f"\n{report_text}")
     
-    # Save the report to a file
     report_file_path = os.path.join(current_dir, "token_count_report.txt")
     with open(report_file_path, "w", encoding="utf-8") as f:
         f.write(report_text)

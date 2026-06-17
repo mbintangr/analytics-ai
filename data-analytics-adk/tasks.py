@@ -44,7 +44,6 @@ local_logger.handlers = []
 local_logger.propagate = False
 
 
-# Reuse DateTimeEncoder
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime.date, datetime.datetime)):
@@ -54,7 +53,6 @@ class DateTimeEncoder(json.JSONEncoder):
         except TypeError:
             return str(obj)
 
-# Helper functions
 async def monitor_resources(output_path: str, interval: int = 1):
     try:
         process = psutil.Process()
@@ -110,7 +108,6 @@ def embed_images_in_markdown(markdown_text: str, output_dir: str) -> str:
     
     markdown_text = re.sub(r'!\[(.*?)[\(\[]\s*`?(.*?\.(?:png|jpg|jpeg|gif|webp|svg))`?\s*[\)\]]`?\s*\]', r'![\1](\2)', markdown_text)
 
-    # Handle cases where LLM only outputs the filename without markdown formatting
     lines = markdown_text.splitlines(keepends=True)
     for i, line in enumerate(lines):
         clean_line = line.strip(' \t\n\r`"\'')
@@ -198,13 +195,12 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
     session_service = InMemorySessionService()
     artifact_service = InMemoryArtifactService()
 
-    # Initialize DuckDB Engine and register the raw data
     engine = DuckDBEngine()
     engine.register_parquet("raw_data", raw_data_path)
 
     initial_state = {
         "output_dir": output_dir,
-        "duckdb_engine": engine,  # tools access via tool_context.state["duckdb_engine"]
+        "duckdb_engine": engine,
         "data_state": {
             "raw_data": {
                 "description": "The initial data uploaded by the user.",
@@ -214,13 +210,12 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         "data_understanding": "",
         "data_assessment": "",
         "data_cleaning": "",
-        # "business_questions": "",
         "business_questions": business_questions,
         "data_preparation": "",
         "insights": "",
         "eda_report": "",
-        "eda_schema_error": "",      # populated on retry to feed error back to eda_agent
-        "eda_last_raw_output": "",   # snapshot of raw set_model_response args before validation
+        "eda_schema_error": "",
+        "eda_last_raw_output": "",
         "final_report": "",
         "session_id": session_id,
     }
@@ -311,13 +306,12 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 t, r = await run_pipeline(content, events_log_path)
                 token += t
                 final_response_text = r
-                break  # success
+                break
             except (ValidationError, json.JSONDecodeError) as ve:
                 print(f"[Retry {attempt + 1}/{EDA_SCHEMA_MAX_RETRIES}] EDA output error: {ve}")
                 if attempt == EDA_SCHEMA_MAX_RETRIES - 1:
                     raise
 
-                # Read the raw output snapshot saved by before_tool_callback
                 session_snapshot = await session_service.get_session(
                     app_name=APP_NAME, user_id=USER_ID, session_id=session_id
                 )
@@ -330,7 +324,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 )
                 print(f"[Retry] Feeding validation error back to eda_agent:\n{error_msg}")
 
-                # Inject error into session state so eda_agent sees {eda_schema_error}
                 session_snapshot = await session_service.get_session(
                     app_name=APP_NAME, user_id=USER_ID, session_id=session_id
                 )
@@ -342,7 +335,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                     ),
                 )
                 await session_service.append_event(session_snapshot, error_event)
-                # Re-use the same content; eda_agent reads error from state
                 content = types.Content(role="user", parts=[types.Part(text=query)])
 
     finally:
@@ -352,7 +344,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         except asyncio.CancelledError:
             pass
         log_file.close()
-        # Close DuckDB engine
         engine.close()
 
     updated_session = await session_service.get_session(
@@ -362,13 +353,11 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
     end_time = time.time()
     duration = end_time - start_time
 
-    # Save final report to DB
     final_report = updated_session.state.get("final_report")
     report_path = None
     report_title = None
 
     if final_report:
-        # Extract title from the first line starting with #
         match = re.search(r'^#\s+(.*)', final_report, re.MULTILINE)
         if match:
             report_title = match.group(1).strip()
@@ -377,12 +366,10 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         report_path = os.path.join(output_dir, "analysis_report.md")
         save_text_to_file(final_report, report_path)
 
-    # Save processing info
     state_path = os.path.join(output_dir, "state.json")
     with open(state_path, "w", encoding="utf-8") as f:
         json.dump(updated_session.state, f, cls=DateTimeEncoder, indent=4)
 
-    # Update DB with success
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -401,7 +388,6 @@ def process_dataset_task(dataset_path, session_id, business_questions="", model_
         asyncio.run(process_dataset_async(dataset_path, session_id, business_questions=business_questions, model_name=model_name))
     except Exception as e:
         print(f"Task failed: {e}")
-        # Update DB with failure
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', ("FAILED", session_id))
@@ -414,8 +400,6 @@ def on_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs
     """
     print(f"Task failure signal received for task_id={task_id}, exception={exception}")
     
-    # Check if this is our relevant task
-    # Note: 'sender' here is the task object itself
     if sender and sender.name == 'tasks.process_dataset_task':
         session_id = None
         if kwargs and 'session_id' in kwargs:

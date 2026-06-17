@@ -23,8 +23,7 @@ class DuckDBEngine:
     def conn(self):
         """Lazy-load the DuckDB connection and re-register tables if needed."""
         if self._conn is None:
-            self._conn = duckdb.connect()  # in-memory instance
-            # Re-register all tables in the new connection
+            self._conn = duckdb.connect()
             for name, path in self._registered_tables.items():
                 self._register_in_duckdb(name, path)
         return self._conn
@@ -39,7 +38,6 @@ class DuckDBEngine:
     def register_parquet(self, table_name: str, parquet_path: str):
         """Register a Parquet file as a named view (zero-copy, no loading into memory)."""
         self._registered_tables[table_name] = parquet_path
-        # register in duckdb if connection is already initialized
         if self._conn is not None:
             self._register_in_duckdb(table_name, parquet_path)
 
@@ -49,7 +47,6 @@ class DuckDBEngine:
         """
         result = self.conn.execute(sql)
         if result.description is None:
-            # DDL or statement with no result set
             return {"columns": [], "rows": [], "row_count": 0, "truncated": False, "message": "Query executed successfully."}
 
         columns = [desc[0] for desc in result.description]
@@ -59,7 +56,6 @@ class DuckDBEngine:
         if truncated:
             rows = rows[:max_rows]
 
-        # Sanitize values for JSON serialization
         sanitized_rows = []
         for row in rows:
             sanitized_row = []
@@ -75,7 +71,7 @@ class DuckDBEngine:
                 elif isinstance(val, (datetime.date, datetime.datetime)):
                     sanitized_row.append(val.isoformat())
                 elif isinstance(val, float):
-                    if val != val:  # NaN check
+                    if val != val:
                         sanitized_row.append(None)
                     elif abs(val) == float("inf"):
                         sanitized_row.append(None)

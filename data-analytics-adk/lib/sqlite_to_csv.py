@@ -55,7 +55,7 @@ def export_merged_components(cursor, db_out_dir, tables):
 
     for i, (comp_tables, comp_edges) in enumerate(components):
         if len(comp_tables) <= 1:
-            continue # No need to merge a single table
+            continue
             
         select_items = []
         for t in comp_tables:
