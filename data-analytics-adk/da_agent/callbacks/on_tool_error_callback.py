@@ -9,15 +9,6 @@ def handle_tool_error(
     tool_context: ToolContext,
     error: Exception,
 ) -> Optional[Dict]:
-    """
-    Called by ADK when any tool call raises an exception — including the
-    'Tool not found' ValueError thrown by _get_tool when the model emits a
-    hallucinated or malformed function name (e.g. MiMo appending
-    '<|channel|>commentary' to a valid tool name).
-
-    Returning a non-None dict sends it back to the LLM as the tool result,
-    letting the model self-correct instead of crashing the task.
-    """
     error_str = str(error)
     tool_name = getattr(tool, "name", "<unknown>")
 

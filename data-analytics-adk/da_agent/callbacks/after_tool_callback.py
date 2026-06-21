@@ -7,7 +7,6 @@ from copy import deepcopy
 def log_after_tool_execution(
     tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext, tool_response: Dict
 ) -> Optional[Dict]:
-    """Logs the after tool execution to the database."""
     agent_name = tool_context.agent_name
     tool_name = tool.name
 

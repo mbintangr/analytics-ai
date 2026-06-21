@@ -14,18 +14,15 @@ from .dataTools import (
     plot_heatmap,
     plot_count,
     plot_pie,
-    save_text_to_file,
 )
 
 def _truncate_output(data: str, max_chars: int = 5000) -> str:
-    """Truncate the output string to a maximum number of characters."""
     if len(data) <= max_chars:
         return data
     return data[:max_chars] + f"\n... [Output truncated to {max_chars} chars] ..."
 
 
 def _get_engine(tool_context: ToolContext):
-    """Get the DuckDB engine from tool context state."""
     engine = tool_context.state.get("duckdb_engine")
     if engine is None:
         raise ValueError("DuckDB engine not found in tool context state. Ensure it was initialized in tasks.py.")
@@ -55,7 +52,6 @@ def _get_engine(tool_context: ToolContext):
 
 
 def _format_query_result(result: dict) -> str:
-    """Format a query result dict as readable text for the LLM."""
     if not result.get("columns"):
         return result.get("message", "Query executed successfully (no result set).")
 
@@ -201,9 +197,12 @@ def plot_tool(
         if plot_df.empty:
             return "Error: SQL query returned no data to plot."
 
+        warning = None
+
         if len(plot_df) > 10000:
             plot_df = plot_df.head(10000)
             print("Warning: Plot data truncated to 10000 rows")
+            warning = "Plot data truncated to 10000 rows\n"
 
         if isinstance(palette, str):
             try:
@@ -224,26 +223,28 @@ def plot_tool(
             save_path = os.path.join(output_dir, os.path.basename(save_path))
             os.makedirs(output_dir, exist_ok=True)
 
-        warning = None
-
+        plot_warn = None
         if plot_type == "bar":
-            warning = plot_bar(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
+            plot_warn = plot_bar(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "line":
-            warning = plot_line(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
+            plot_warn = plot_line(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "scatter":
-            warning = plot_scatter(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
+            plot_warn = plot_scatter(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "histogram":
-            warning = plot_histogram(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, color=color, palette=palette, save_path=save_path)
+            plot_warn = plot_histogram(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "box":
-            warning = plot_box(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
+            plot_warn = plot_box(plot_df, x=x, y=y, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         elif plot_type == "pie":
-            warning = plot_pie(plot_df, labels=x, values=y, title=title, palette=palette, save_path=save_path)
+            plot_warn = plot_pie(plot_df, labels=x, values=y, title=title, palette=palette, save_path=save_path)
         elif plot_type == "heatmap":
             plot_heatmap(plot_df, title=title, cmap=palette or "coolwarm", save_path=save_path)
         elif plot_type == "count":
-            warning = plot_count(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
+            plot_warn = plot_count(plot_df, x=x, hue=hue, title=title, xlabel=xlabel, ylabel=ylabel, color=color, palette=palette, save_path=save_path)
         else:
             return f"Error: Unsupported plot type '{plot_type}'. Use: bar, line, scatter, histogram, box, pie, heatmap, count."
+
+        if plot_warn:
+            warning = (warning or "") + plot_warn
 
         del plot_df
         gc.collect()
@@ -378,12 +379,10 @@ def get_assessment_report_tool(
             duplicate_count = 0
 
         duplicate_ratio = duplicate_count / max(total_rows, 1)
-        score = 1.0 - (0.8 * null_ratio + 0.2 * duplicate_ratio)
 
         data_quality_score = {
             "null_ratio": null_ratio,
             "duplicate_ratio": duplicate_ratio,
-            "quality_score": round(max(score, 0.0), 3)
         }
 
         assessment_report = {

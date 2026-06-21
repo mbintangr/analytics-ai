@@ -7,7 +7,6 @@ import json
 def log_before_tool_execution(
     tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext
 ) -> Optional[Dict]:
-    """Logs the before tool execution to the database."""
     agent_name = tool_context.agent_name
     tool_name = tool.name
 

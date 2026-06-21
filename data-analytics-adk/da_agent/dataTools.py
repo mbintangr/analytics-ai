@@ -1,25 +1,13 @@
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import IsolationForest
-from pandas.api.types import (
-    is_numeric_dtype,
-    is_datetime64_any_dtype,
-    is_string_dtype,
-)
+from pandas.api.types import is_numeric_dtype
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import ast
-
 def _optimize_plot_ticks(ax):
-    """
-    Optimize ticks for numeric axes to prevent overcrowding.
-    Also truncates long string labels to max 10 chars.
-    Truncates legend texts to max 20 chars.
-    """
     from matplotlib.ticker import MaxNLocator
 
     try:
@@ -68,10 +56,6 @@ def plot_bar(
     ascending: bool = False,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a bar plot. Handles high cardinality in x by showing top 20.
-    Returns a warning string if truncation occurred, else None.
-    """
     fig, ax = plt.subplots(figsize=(12, 6))
     warning = None
 
@@ -175,9 +159,6 @@ def plot_line(
     palette: str | dict | list = None,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a line plot.
-    """
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
 
@@ -236,10 +217,6 @@ def plot_scatter(
     palette: str | dict | list = None,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a scatter plot.
-    Returns a warning string if truncation occurred, else None.
-    """
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
 
@@ -310,10 +287,6 @@ def plot_histogram(
     palette: str | dict | list = None,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a histogram.
-    Returns a warning string if truncation occurred, else None.
-    """
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
 
@@ -376,10 +349,6 @@ def plot_box(
     palette: str | dict | list = None,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a box plot.
-    Returns a warning string if truncation occurred, else None.
-    """
     fig, ax = plt.subplots(figsize=(10, 6))
     warning = None
     
@@ -455,10 +424,6 @@ def plot_heatmap(
     cmap: str = "coolwarm",
     save_path: str = None,
 ):
-    """
-    Create a heatmap (usually for correlation matrices).
-    Supports creating a pivot table on the fly if index, columns, and values are provided.
-    """
     fig, ax = plt.subplots(figsize=(10, 8))
 
     plot_data = df.copy()
@@ -492,10 +457,6 @@ def plot_count(
     palette: str | dict | list = None,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a count plot. Handles high cardinality.
-    Returns a warning string if truncation occurred, else None.
-    """
     fig, ax = plt.subplots(figsize=(12, 6))
     warning = None
     
@@ -565,18 +526,6 @@ def plot_pie(
     palette: str | dict | list = None,
     save_path: str = None,
 ) -> str | None:
-    """
-    Create a pie chart.
-    Args:
-        df: DataFrame
-        labels: Column for slice labels
-        values: Column for slice sizes. If None, counts occurrences of 'labels'.
-        title: Plot title
-        palette: Color palette
-        save_path: Path to save the plot
-    Returns:
-        Warning string if truncation occurred.
-    """
     fig, ax = plt.subplots(figsize=(10, 8))
     warning = None
 
@@ -644,112 +593,6 @@ def plot_pie(
     return warning
 
 
-def get_top_n_rows(
-    df: pd.DataFrame, column: str, n: int = 5, ascending: bool = False
-) -> pd.DataFrame:
-    """
-    Get the top/bottom N rows sorted by a column.
-
-    Args:
-        df (pd.DataFrame): The data.
-        column (str): The column to sort by.
-        n (int): The number of rows to return.
-        ascending (bool): Whether to sort in ascending order (True=bottom N, False=top N).
-
-    Returns:
-        pd.DataFrame: The sorted dataframe.
-    """
-    if column not in df.columns:
-        raise ValueError(f"Column {column} not found in dataframe")
-    return df.sort_values(by=column, ascending=ascending).head(n)
-
-
-def get_group_stats(
-    df: pd.DataFrame, group_by: str, target_col: str, agg: str = "mean"
-) -> dict:
-    """
-    Get aggregated statistics for a target column grouped by another column.
-
-    Args:
-        df (pd.DataFrame): The data.
-        group_by (str): The column to group by.
-        target_col (str): The column to aggregate.
-        agg (str): The aggregation function ('mean', 'sum', 'max', 'min', 'count', 'median').
-
-    Returns:
-        dict: A dictionary of {group_label: aggregated_value}.
-    """
-    if group_by not in df.columns or target_col not in df.columns:
-        raise ValueError(f"Columns {group_by} or {target_col} not found")
-
-    result = df.groupby(group_by)[target_col].agg(agg)
-    return result.to_dict()
-
-
-def get_column_stats(df: pd.DataFrame, column: str) -> dict:
-    """
-    Get detailed statistics for a specific column.
-
-    Args:
-        df (pd.DataFrame): The data.
-        column (str): The column to analyze.
-
-    Returns:
-        dict: Dictionary of statistics.
-    """
-    if column not in df.columns:
-        raise ValueError(f"Column {column} not found")
-
-    series = df[column]
-    stats = series.describe().to_dict()
-
-    stats["null_count"] = int(series.isnull().sum())
-    stats["dtype"] = str(series.dtype)
-
-    if pd.api.types.is_numeric_dtype(series):
-        stats["skew"] = float(series.skew())
-        stats["kurtosis"] = float(series.kurtosis())
-
-    return stats
-
-
-def get_aggregation_scalar(df: pd.DataFrame, column: str, agg: str = "mean") -> float:
-    """
-    Get a single aggregated value for a column (e.g., total revenue).
-
-    Args:
-        df (pd.DataFrame): The data.
-        column (str): The column to aggregate.
-        agg (str): Aggregation function ('mean', 'sum', 'max', 'min', 'count', 'median', 'std', 'var').
-
-    Returns:
-        float: The aggregated scalar value.
-    """
-    if column not in df.columns:
-        raise ValueError(f"Column {column} not found")
-
-    series = df[column]
-
-    if agg == "mean":
-        return float(series.mean())
-    elif agg == "sum":
-        return float(series.sum())
-    elif agg == "max":
-        return float(series.max())
-    elif agg == "min":
-        return float(series.min())
-    elif agg == "count":
-        return int(series.count())
-    elif agg == "median":
-        return float(series.median())
-    elif agg == "std":
-        return float(series.std())
-    elif agg == "var":
-        return float(series.var())
-    else:
-        raise ValueError(f"Unsupported aggregation: {agg}")
-
-
 def save_text_to_file(text: str, filename: str) -> str:
     """
     Save text content to a file.
@@ -764,55 +607,3 @@ def save_text_to_file(text: str, filename: str) -> str:
     with open(filename, "w", encoding="utf-8") as f:
         f.write(text)
     return filename
-
-
-def remove_rows_by_condition(df: pd.DataFrame, column: str, value, method: str = "eq"):
-    """
-    Remove rows based on a condition.
-    Inverse of get_rows_by_condition.
-    """
-    if column not in df.columns:
-        raise KeyError(f"Column '{column}' not found")
-
-    series = df[column]
-    value = _cast_value(series, value, method)
-
-    if method == "eq":
-        return df[series != value]
-    elif method == "ne":
-        return df[series == value]
-    elif method == "gt":
-        return df[series <= value]
-    elif method == "lt":
-        return df[series >= value]
-    elif method == "ge":
-        return df[series < value]
-    elif method == "le":
-        return df[series > value]
-    elif method == "between":
-        low, high = value
-        return df[~((series >= low) & (series <= high))]
-
-    elif method == "in":
-        return df[~series.isin(value)]
-    elif method == "not_in":
-        return df[series.isin(value)]
-
-    if not is_string_dtype(series):
-        series = series.astype(str)
-
-    if method == "contains":
-        return df[~series.str.contains(value, na=False)]
-    elif method == "not_contains":
-        return df[series.str.contains(value, na=False)]
-    elif method == "startswith":
-        return df[~series.str.startswith(value, na=False)]
-    elif method == "endswith":
-        return df[~series.str.endswith(value, na=False)]
-    elif method == "regex":
-        return df[~series.str.contains(value, regex=True, na=False)]
-    elif method == "not_regex":
-        return df[series.str.contains(value, regex=True, na=False)]
-
-    else:
-        raise ValueError(f"Invalid method: {method}")

@@ -57,7 +57,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
   const [isParquet, setIsParquet] = useState(false);
   const [unsupportedFile, setUnsupportedFile] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [loadingText, setLoadingText] = useState("Processing...");
   const [progress, setProgress] = useState(0);
   const [businessQuestions, setBusinessQuestions] = useState("");
   const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0].value);
@@ -125,7 +124,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
     setSelectedModel(AVAILABLE_MODELS[0].value);
     setIsUploading(false);
     setProgress(0);
-    setLoadingText("Processing...");
   };
 
   const handleCancel = () => {
@@ -146,7 +144,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
 
     try {
       setIsUploading(true);
-      setLoadingText("Initializing upload...");
       setProgress(0);
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
@@ -166,7 +163,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
       const { upload_id } = await initResponse.json();
 
       for (let i = 0; i < totalChunks; i++) {
-        setLoadingText(`Uploading part ${i + 1} of ${totalChunks}...`);
         const start = i * CHUNK_SIZE;
         const end = Math.min(file.size, start + CHUNK_SIZE);
         const chunk = file.slice(start, end);
@@ -185,7 +181,6 @@ export function UploadView({ userId, onUploadSuccess, onCancel }: UploadViewProp
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
 
-      setLoadingText("Finalizing and processing...");
       const completeFormData = new FormData();
       completeFormData.append("upload_id", upload_id);
       completeFormData.append("filename", file.name);

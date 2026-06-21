@@ -3,9 +3,6 @@ from google.genai import types
 from typing import Optional
 
 def log_before_agent_execution(callback_context: CallbackContext) -> Optional[types.Content]:
-    """
-    Logs the before agent execution to the database.
-    """
     agent_name = callback_context.agent_name
     current_state = callback_context.state.to_dict()
 

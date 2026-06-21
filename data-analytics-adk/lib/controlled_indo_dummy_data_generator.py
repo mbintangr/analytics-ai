@@ -13,9 +13,6 @@ NEGATIVE_VALUES_PERCENTAGE = 0.005
 INCONSISTENT_TEXT_PERCENTAGE = 0.03
 
 def generate_sales_data_id():
-    print(f"Initializing generation for {NUM_OF_ROWS} rows ({QUALITY_TYPE} mode - ID Context)...")
-    start_time = time.time()
-    
     catalog = [
       ('Laptop Asus ROG', 'Elektronik', 15000000), ('Mouse Wireless Logitek', 'Elektronik', 250000),
       ('Keyboard Mekanik', 'Elektronik', 850000), ('Monitor 4K Samsung', 'Elektronik', 4500000),
@@ -68,29 +65,21 @@ def generate_sales_data_id():
     df['unit_price'] = (catalog_prices[indices] * np.random.uniform(0.95, 1.05, NUM_OF_ROWS))
     df['unit_price'] = (df['unit_price'] // 100) * 100
     df['total_bill'] = df['quantity'] * df['unit_price']
-
-    print("Calculating Advanced Ground Truth for validation...")
     
-    # Q1: Elektronik revenue by location
     elektronik_rev = df[df['category'] == 'Elektronik'].groupby('store_location')['total_bill'].sum()
     q1_location = str(elektronik_rev.idxmax())
     q1_revenue = float(elektronik_rev.max())
 
-    # Q2: Weekend Revenue
-    # dayofweek: Monday=0, Sunday=6. Weekends are 5 and 6.
     weekend_revenue = float(df[df['date'].dt.dayofweek.isin([5, 6])]['total_bill'].sum())
 
-    # Q3: Highest AOV by Payment Method (valid quantities only)
     valid_transactions = df[df['quantity'] > 0]
     aov_by_payment = valid_transactions.groupby('payment_method')['total_bill'].mean()
     q3_payment_method = str(aov_by_payment.idxmax())
 
-    # Q4: Top 5 Products Revenue Percentage
     total_revenue = float(df['total_bill'].sum())
     top_5_revenue = float(df.groupby('product_name')['total_bill'].sum().nlargest(5).sum())
     q4_percentage = (top_5_revenue / total_revenue) * 100
 
-    # Q5: Non-Elektronik, Gopay, Top product by Quantity
     filtered_q5 = df[(df['category'] != 'Elektronik') & (df['payment_method'] == 'Gopay')]
     q5_top_product = str(filtered_q5.groupby('product_name')['quantity'].sum().idxmax())
 
@@ -103,10 +92,7 @@ def generate_sales_data_id():
         "Q5_Top_Product_Gopay_Non_Elektronik": q5_top_product
     }
 
-    # --- STEP 3: INJECT NOISE ---
     if QUALITY_TYPE == 'dirty':
-        print("Injecting 'Indonesian-style' noise...")
-
         mask_null_cat = np.random.rand(NUM_OF_ROWS) < MISSING_VALUES_PERCENTAGE
         df.loc[mask_null_cat, 'category'] = np.nan
 
@@ -118,21 +104,15 @@ def generate_sales_data_id():
 
         df['total_bill'] = df['quantity'] * df['unit_price']
 
-    # --- STEP 4: EXPORT ---
     os.makedirs("./sales_dataset", exist_ok=True)
     
     csv_filename = f"./sales_dataset/indo_{NUM_OF_ROWS}_{QUALITY_TYPE}_sales_data.csv"
     json_filename = f"./sales_dataset/indo_{NUM_OF_ROWS}_{QUALITY_TYPE}_ground_truth.json"
     
-    print(f"Exporting Data to {csv_filename}...")
     df.to_csv(csv_filename, index=False)
     
-    print(f"Exporting Ground Truth to {json_filename}...")
     with open(json_filename, 'w') as f:
         json.dump(ground_truth, f, indent=4)
-        
-    elapsed = time.time() - start_time
-    print(f"Done! Created dataset and ground truth in {elapsed:.2f} seconds.")
 
 if __name__ == "__main__":
     generate_sales_data_id()

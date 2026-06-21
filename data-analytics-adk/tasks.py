@@ -43,7 +43,6 @@ local_logger = logging.getLogger("litellm")
 local_logger.handlers = []
 local_logger.propagate = False
 
-
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime.date, datetime.datetime)):
@@ -52,56 +51,6 @@ class DateTimeEncoder(json.JSONEncoder):
             return super().default(obj)
         except TypeError:
             return str(obj)
-
-async def monitor_resources(output_path: str, interval: int = 1):
-    try:
-        process = psutil.Process()
-        with open(output_path, "w", encoding="utf-8") as f:
-            while True:
-                timestamp = datetime.datetime.now().isoformat()
-                cpu_percent = process.cpu_percent()
-                cpu_freq = psutil.cpu_freq()
-                if cpu_freq:
-                    current_freq_ghz = cpu_freq.current / 1000.0
-                else:
-                    current_freq_ghz = 0.0
-
-                cpu_ghz = (cpu_percent / 100.0) * current_freq_ghz
-
-                memory_info = process.memory_info()
-                memory_mb = memory_info.rss / (1024 * 1024)
-                memory_percent = process.memory_percent()
-
-                data = {
-                    "timestamp": timestamp,
-                    "cpu_ghz": cpu_ghz,
-                    "cpu_percent": cpu_percent,
-                    "memory_mb": memory_mb,
-                    "memory_percent": memory_percent,
-                }
-
-                json.dump(data, f)
-                f.write("\n")
-                f.flush()
-
-                await asyncio.sleep(interval)
-    except asyncio.CancelledError:
-        pass
-    except Exception as e:
-        print(f"Error in resource monitoring: {e}")
-
-class Tee:
-    def __init__(self, *files):
-        self.files = files
-
-    def write(self, obj):
-        for f in self.files:
-            f.write(obj)
-            f.flush()
-
-    def flush(self):
-        for f in self.files:
-            f.flush()
 
 def embed_images_in_markdown(markdown_text: str, output_dir: str) -> str:
     markdown_text = re.sub(r'`?\[Embed Image Here:\s*`?(.*?)`?\]`?', r'\1', markdown_text)
@@ -147,7 +96,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
     start_time = time.time()
     APP_NAME = "agents"
     USER_ID = "user_1"
-    print("process_dataset_async", business_questions)
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -193,7 +141,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         raise e
 
     session_service = InMemorySessionService()
-    artifact_service = InMemoryArtifactService()
 
     engine = DuckDBEngine()
     engine.register_parquet("raw_data", raw_data_path)
@@ -232,83 +179,68 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         app_name=APP_NAME,
         agent=agent,
         session_service=session_service,
-        artifact_service=artifact_service,
     )
-
-    resources_log_path = os.path.join(output_dir, "resources.jsonl")
-    monitor_task = asyncio.create_task(monitor_resources(resources_log_path))
-
-    log_file_path = os.path.join(output_dir, "run.log")
-    log_file = open(log_file_path, "w", encoding="utf-8")
 
     EDA_SCHEMA_MAX_RETRIES = 3
 
-    async def run_pipeline(content, events_log_path):
-        """Run the full agent pipeline, returning (token_count, final_response_text)."""
+    async def run_pipeline(content):
         token = 0
         final_response_text = ""
         last_author = None
-        with open(events_log_path, "w", encoding="utf-8") as events_file:
-            async for event in runner.run_async(
-                new_message=content,
-                user_id=USER_ID,
-                session_id=session_id,
-            ):
-                event_data = None
-                try:
-                    if hasattr(event, "model_dump"):
-                        event_data = event.model_dump(mode="json")
-                    elif hasattr(event, "to_dict"):
-                        event_data = event.to_dict()
-                    elif hasattr(event, "__dict__"):
-                        event_data = event.__dict__
-                    if event_data is None:
-                        event_data = {"str_repr": str(event)}
-                except Exception:
+        async for event in runner.run_async(
+            new_message=content,
+            user_id=USER_ID,
+            session_id=session_id,
+        ):
+            event_data = None
+            try:
+                if hasattr(event, "model_dump"):
+                    event_data = event.model_dump(mode="json")
+                elif hasattr(event, "to_dict"):
+                    event_data = event.to_dict()
+                elif hasattr(event, "__dict__"):
+                    event_data = event.__dict__
+                if event_data is None:
                     event_data = {"str_repr": str(event)}
+            except Exception:
+                event_data = {"str_repr": str(event)}
 
-                try:
-                    author = event_data.get("author")
-                    if author and author.endswith("_agent") and author != last_author:
-                        last_author = author
-                        new_status = f"PROCESSING {author}"
-                        with get_db_connection() as conn:
-                            with conn.cursor() as cur:
-                                cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', (new_status, session_id))
-                except Exception as e:
-                    print(f"Error updating status: {e}")
+            try:
+                author = event_data.get("author")
+                if author and author.endswith("_agent") and author != last_author:
+                    last_author = author
+                    new_status = f"PROCESSING {author}"
+                    with get_db_connection() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute('UPDATE "AnalysisSession" SET status=%s WHERE id=%s', (new_status, session_id))
+            except Exception as e:
+                print(f"Error updating status: {e}")
 
-                json.dump(event_data, events_file, cls=DateTimeEncoder)
-                events_file.write("\n")
-                events_file.flush()
+            usage_metadata = getattr(event, "usage_metadata", None)
+            if usage_metadata:
+                if isinstance(usage_metadata, dict):
+                    token += usage_metadata.get("total_token_count", 0)
+                else:
+                    token += getattr(usage_metadata, "total_token_count", 0)
 
-                usage_metadata = getattr(event, "usage_metadata", None)
-                if usage_metadata:
-                    if isinstance(usage_metadata, dict):
-                        token += usage_metadata.get("total_token_count", 0)
-                    else:
-                        token += getattr(usage_metadata, "total_token_count", 0)
-
-                if event.is_final_response():
-                    if event.content and event.content.parts:
-                        final_response_text = event.content.parts[0].text
+            if event.is_final_response():
+                if event.content and event.content.parts:
+                    final_response_text = event.content.parts[0].text
 
         return token, final_response_text
 
     try:
         content = types.Content(role="user", parts=[types.Part(text=query)])
-        events_log_path = os.path.join(output_dir, "events.jsonl")
         token = 0
         final_response_text = ""
 
         for attempt in range(EDA_SCHEMA_MAX_RETRIES):
             try:
-                t, r = await run_pipeline(content, events_log_path)
+                t, r = await run_pipeline(content)
                 token += t
                 final_response_text = r
                 break
             except (ValidationError, json.JSONDecodeError) as ve:
-                print(f"[Retry {attempt + 1}/{EDA_SCHEMA_MAX_RETRIES}] EDA output error: {ve}")
                 if attempt == EDA_SCHEMA_MAX_RETRIES - 1:
                     raise
 
@@ -322,11 +254,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                     f"YOUR RAW OUTPUT:\n{raw_output}\n\n"
                     f"Fix the output so it matches the required schema."
                 )
-                print(f"[Retry] Feeding validation error back to eda_agent:\n{error_msg}")
-
-                session_snapshot = await session_service.get_session(
-                    app_name=APP_NAME, user_id=USER_ID, session_id=session_id
-                )
                 error_event = Event(
                     invocation_id=f"retry-{attempt}",
                     author="system",
@@ -338,12 +265,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
                 content = types.Content(role="user", parts=[types.Part(text=query)])
 
     finally:
-        monitor_task.cancel()
-        try:
-            await monitor_task
-        except asyncio.CancelledError:
-            pass
-        log_file.close()
         engine.close()
 
     updated_session = await session_service.get_session(
@@ -365,10 +286,6 @@ async def process_dataset_async(dataset_path: str, session_id: str, query: str =
         final_report = embed_images_in_markdown(final_report, output_dir)
         report_path = os.path.join(output_dir, "analysis_report.md")
         save_text_to_file(final_report, report_path)
-
-    state_path = os.path.join(output_dir, "state.json")
-    with open(state_path, "w", encoding="utf-8") as f:
-        json.dump(updated_session.state, f, cls=DateTimeEncoder, indent=4)
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -395,9 +312,6 @@ def process_dataset_task(dataset_path, session_id, business_questions="", model_
 
 @task_failure.connect
 def on_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, traceback=None, einfo=None, **other):
-    """
-    Signal handler for task failures, including WorkerLostError (SIGKILL/OOM).
-    """
     print(f"Task failure signal received for task_id={task_id}, exception={exception}")
     
     if sender and sender.name == 'tasks.process_dataset_task':

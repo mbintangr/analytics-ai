@@ -63,7 +63,6 @@ class edaAgentOutputSchema(BaseModel):
     @field_validator("insights", mode="before")
     @classmethod
     def parse_insights_if_string(cls, v: Any) -> Any:
-        """Allow the LLM to return insights as a JSON-encoded string."""
         if isinstance(v, str):
             import json as _json
             return _json.loads(v)
@@ -71,7 +70,6 @@ class edaAgentOutputSchema(BaseModel):
 
 
 def create_root_agent(model_name: str = DEFAULT_MODEL):
-    """Create and return a fully wired root_agent using the specified LLM model."""
     config = MODEL_CONFIGS.get(model_name, MODEL_CONFIGS[DEFAULT_MODEL])
     model = LiteLlm(
         model=model_name,

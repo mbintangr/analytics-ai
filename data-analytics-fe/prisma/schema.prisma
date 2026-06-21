@@ -116,9 +116,3 @@ enum ProcessEvent {
   START
   END
 }
-
-enum ArtifactType {
-  PLOT
-  TABLE
-  JSON
-}

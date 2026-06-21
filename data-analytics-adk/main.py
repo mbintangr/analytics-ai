@@ -28,53 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/analyze")
-async def analyze_file(file: UploadFile = File(...), user_id: str = Form(...)):
-    try:
-        session_id = str(uuid.uuid4())
-        
-        upload_dir = os.path.join("datasets", "uploads")
-        os.makedirs(upload_dir, exist_ok=True)
-
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_path = os.path.join(
-            upload_dir, f"{timestamp}_{file.filename}_{session_id}"
-        )
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO "AnalysisSession" 
-                    (id, "userId", title, "originalFileName", "datasetPath", status, "createdAt")
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                    """,
-                    (
-                        session_id, 
-                        user_id, 
-                        f"Analysis of {file.filename}", 
-                        file.filename, 
-                        file_path, 
-                        "PROCESSING"
-                    )
-                )
-
-        result = process_dataset_task.delay(file_path, session_id)
-
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute('UPDATE "AnalysisSession" SET "celeryTaskId"=%s WHERE id=%s', (result.id, session_id))
-
-
-        return {"session_id": session_id, "status": "processing"}
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/report/{session_id}")
 async def get_report(session_id: str):
     try:
@@ -405,7 +358,6 @@ async def complete_upload(
     business_questions: str = Form(...),
     model_name: str = Form("")
 ):
-    print("/complete endpoint", business_questions)
     try:
         temp_dir = os.path.join("datasets", "uploads", "temp", upload_id)
         if not os.path.exists(temp_dir):
