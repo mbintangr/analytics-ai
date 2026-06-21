@@ -31,6 +31,10 @@ logging.basicConfig(level=logging.ERROR)
 load_dotenv()
 
 MODEL_CONFIGS = {
+    "openrouter/xiaomi/mimo-v2.5": {
+        "api_key_env": "OPENROUTER_API_KEY",
+        "api_base": "https://openrouter.ai/api/v1",
+    },
     "openrouter/xiaomi/mimo-v2-flash": {
         "api_key_env": "OPENROUTER_API_KEY",
         "api_base": "https://openrouter.ai/api/v1",
@@ -45,7 +49,8 @@ MODEL_CONFIGS = {
     },
 }
 
-DEFAULT_MODEL = "openrouter/xiaomi/mimo-v2-flash"
+# DEFAULT_MODEL = "openrouter/xiaomi/mimo-v2-flash"
+DEFAULT_MODEL = "openrouter/xiaomi/mimo-v2.5"
 
 class insightSchema(BaseModel):
     insight: str = Field(description="The insight derived from the data")

@@ -45,8 +45,6 @@ async def get_report(session_id: str):
                 report_path, status = result
                 
                 if not report_path or not os.path.exists(report_path):
-                    if status == "FAILED":
-                         raise HTTPException(status_code=404, detail="Analysis failed")
                     return {"status": status, "report": None}
                 
                 with open(report_path, "r", encoding="utf-8") as f:

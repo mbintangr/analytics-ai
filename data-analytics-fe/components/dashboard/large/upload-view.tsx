@@ -11,9 +11,10 @@ interface UploadViewProps {
 }
 
 const AVAILABLE_MODELS = [
-  { value: "openrouter/xiaomi/mimo-v2-flash", label: "Mimo V2 Flash" },
-  // { value: "nvidia_nim/openai/gpt-oss-120b", label: "GPT OSS 120B" },
   { value: "openrouter/openai/gpt-oss-120b", label: "GPT OSS 120B" },
+  { value: "openrouter/xiaomi/mimo-v2-flash", label: "Mimo V2 Flash [DEPRECATED]" },
+  { value: "openrouter/xiaomi/mimo-v2.5", label: "Mimo V2.5" },
+  // { value: "nvidia_nim/openai/gpt-oss-120b", label: "GPT OSS 120B" },
 ];
 
 function parseCsvRow(row: string): string[] {
